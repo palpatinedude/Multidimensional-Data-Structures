@@ -7,8 +7,6 @@
 #include <cmath>
 #include <stdexcept>
 
-using namespace std;
-
 class IntervalTree {
 
 private:    
@@ -25,23 +23,22 @@ struct Node {
     long max;
     Node* left;
     Node* right;
+
+    // Constructor for Node
+        Node(Interval interval)
+            : i(new Interval(interval)), max(interval.high), left(nullptr), right(nullptr) {}
+        ~Node() { delete i; }
 };
 
-// A utility function to create a new Interval Search Tree Node
-Node* newNode(Interval i)
-{
-    Node* temp = new Node;
-    temp->i = new Interval(i);
-    temp->max = i.high;
-    temp->left = temp->right = NULL;
-    return temp;
-};
 
 Node* root;
 
 //private methods
 Node* insert(Node* root,Interval i);
 bool Overlap(Interval i1, Interval i2);
+void stabbingQuery(Node* root, long point, std::vector<Interval>& result) const;
+void deletation(Node* root);
+
 
 public:
     // Constructor and destructor
@@ -50,6 +47,7 @@ public:
 
     // Public methods
     void insert(Interval i);
+    void insert(long low, long high);  
     std::vector<Interval> stabbingQuery(long point);
 };
 
