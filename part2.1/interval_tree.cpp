@@ -27,7 +27,7 @@ IntervalTree::Node* IntervalTree::insert(Node* root,Interval i) {
     return new Node(i);
 
     //get root's low value
-    long rlow = root->i->low;
+    long long rlow = root->i->low;
 
     //if current node's low < root's low go to left subtree
     if(i.low < rlow)
@@ -50,19 +50,56 @@ void IntervalTree::insert(Interval i) {
 
 
 //second func for insert,overload insert
-void IntervalTree::insert(long low, long high) {
+void IntervalTree::insert(long long low, long long high) {
     Interval i = {low, high};
     insert(i); 
 }
 
 
 //func to check if 2 given intervals overlap
-bool IntervalTree::Overlap(Interval i1, Interval i2) {
+bool IntervalTree::Overlap(Interval i1, Interval i2) const {
     if(i1.low <= i2.high && i2.low <= i1.high)
     return true;
     return false;
 }
 
+void IntervalTree::stabbingQuery(Node* root, long long point, std::vector<Interval>& result) const {
+    if (!root)
+        return;
+
+    // Check if the point overlaps with the current node's interval using Overlap
+    Interval query_interval = {point, point};  // Treat point as an interval [point, point]
+    if (Overlap(*(root->i), query_interval)) {
+        result.push_back(*(root->i));
+    }
+
+    // Go to left subtree if the point is within its range
+    if (root->left && point <= root->left->max) {
+        stabbingQuery(root->left, point, result);
+    }
+
+    // Else go to the right subtree
+    stabbingQuery(root->right, point, result);
+    }
+
+    std::vector<IntervalTree::Interval> IntervalTree::stabbingQuery(long long point) {
+    std::vector<Interval> result;
+    stabbingQuery(root, point, result);
+    return result;
+}
+
+//Function to delete all nodes in the tree
+void IntervalTree::freeTree(Node* root) {
+    if (!root)
+        return;
+
+    freeTree(root->left);  // Free the left subtree
+    freeTree(root->right); // Free the right subtree
+
+    delete root->i;  // Delete the interval
+    delete root;     // Delete the node
+}
+
 IntervalTree::~IntervalTree() {
-    deletation(root);
+    freeTree(root);
 }

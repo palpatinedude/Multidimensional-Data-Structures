@@ -6,7 +6,7 @@
 #include <stdexcept>
 
 #include "interval_tree.h"
-#include "data\processed_trajectories.json"
+#include "interval_tree.cpp"
 
 using json  = nlohmann::json;
 
@@ -18,12 +18,13 @@ void loadFromJson(IntervalTree& tree, const std::string& processed_trajectories)
     }
 
     json data = json::parse(file);
-    
+
     for (const auto& trip : data["trajectories"]) {
         const auto& trajectory = trip["trajectory"];
-        long start = trajectory.front()["Timestamp"];
-        long end = trajectory.back()["Timestamp"];
-        tree.insert({start, end});
+        long long start = trajectory.front()["Timestamp"];
+        long long end = trajectory.back()["Timestamp"];
+        std::cout << "Inserting interval: [" << start << ", " << end << "]\n";  // Debugging line
+        tree.insert(start, end);
     }
 }
 
@@ -31,12 +32,25 @@ int main() {
     IntervalTree tree;
 
     try {
-        loadFromJson(tree, "processed_trajectories.json");
-    }
+        loadFromJson(tree, "../data/processed_trajectories.json");
 
-    catch (const std::exception& e) {
+        long long query_point = 1230654222000;  // Example timestamp for testing
+        auto results = tree.stabbingQuery(query_point);
+
+        // Check if results are empty
+        if (results.empty()) {
+            std::cout << "No intervals contain the point " << query_point << ".\n";
+        } else {
+            // Print results of the stabbing query
+            std::cout << "Intervals containing the point " << query_point << ":\n";
+            for (const auto& interval : results) {
+                std::cout << "[" << interval.low << ", " << interval.high << "]\n";
+            }
+        }
+    } catch (const std::exception& e) {
         std::cerr << "Error: " << e.what() << '\n';
     }
 
     return 0;
 }
+

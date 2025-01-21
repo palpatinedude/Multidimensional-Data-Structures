@@ -13,14 +13,14 @@ private:
 
 //interval stucture
 struct Interval {
-    long low;
-    long high;
+    long long low;
+    long long high;
 };
 
 //node struct 
 struct Node {
     Interval* i;
-    long max;
+    long long max;
     Node* left;
     Node* right;
 
@@ -35,9 +35,9 @@ Node* root;
 
 //private methods
 Node* insert(Node* root,Interval i);
-bool Overlap(Interval i1, Interval i2);
-void stabbingQuery(Node* root, long point, std::vector<Interval>& result) const;
-void deletation(Node* root);
+bool Overlap(Interval i1, Interval i2)const;
+void stabbingQuery(Node* root, long long point, std::vector<Interval>& result) const;
+void freeTree(Node* root);
 
 
 public:
@@ -47,8 +47,8 @@ public:
 
     // Public methods
     void insert(Interval i);
-    void insert(long low, long high);  
-    std::vector<Interval> stabbingQuery(long point);
+    void insert(long long low, long long high);  
+    std::vector<Interval> stabbingQuery(long long point);
 };
 
 
