@@ -34,7 +34,7 @@ int main() {
     try {
         loadFromJson(tree, "../data/processed_trajectories.json");
 
-        long long query_point = 1230654222000;  // Example timestamp for testing
+        long long query_point = 1517356600000;  // Example timestamp for testing
         auto results = tree.stabbingQuery(query_point);
 
         // Check if results are empty
@@ -53,4 +53,35 @@ int main() {
 
     return 0;
 }
+
+/*int main() {
+    IntervalTree tree;
+
+    // Insert intervals
+    tree.insert(1517356588000, 1517358617000);
+    tree.insert(1517356590000, 1517356700000);
+
+    // Display intervals before deletion
+    std::cout << "Before deletion:\n";
+    auto results = tree.stabbingQuery(1517356600000);
+    for (const auto& interval : results) {
+        std::cout << "[" << interval.low << ", " << interval.high << "]\n";
+    }
+
+    // Delete an interval using an Interval object
+    IntervalTree::Interval toDelete = {1517356588000, 1517358617000};
+    tree.deleteNode(toDelete);
+
+    // Display intervals after deletion
+    std::cout << "\nAfter deletion:\n";
+    results = tree.stabbingQuery(1517356600000);
+    for (const auto& interval : results) {
+        std::cout << "[" << interval.low << ", " << interval.high << "]\n";
+    }
+
+    return 0;
+}*/
+
+
+
 

@@ -3,6 +3,10 @@
 #include <vector>
 #include <algorithm>
 #include <stdexcept>
+#include <climits>
+#include <queue>
+#include <cmath>
+#include <iomanip>
 
 #include "interval_tree.h"
 
@@ -102,4 +106,54 @@ void IntervalTree::freeTree(Node* root) {
 
 IntervalTree::~IntervalTree() {
     freeTree(root);
+}
+
+IntervalTree::Node* IntervalTree::deleteNode(Node* root, Interval i) {
+    if (!root) return nullptr;
+
+    // Use Overlap to find the node to delete
+    if (Overlap(*(root->i), i)) {
+        // Node found; delete it
+
+        // Case 1: Node with only one child or no child
+        if (!root->left) {
+            Node* temp = root->right;
+            delete root->i;
+            delete root;
+            return temp;
+        } else if (!root->right) {
+            Node* temp = root->left;
+            delete root->i;
+            delete root;
+            return temp;
+        }
+
+        // Case 2: Node with two children
+        // Find the inorder successor (smallest in the right subtree)
+        Node* temp = root->right;
+        while (temp->left) temp = temp->left;
+
+        // Copy the inorder successor's interval to this node
+        *(root->i) = *(temp->i);
+
+        // Delete the inorder successor
+        root->right = deleteNode(root->right, *(temp->i));
+    } else if (i.low < root->i->low) {
+        // Recur into the left subtree
+        root->left = deleteNode(root->left, i);
+    } else {
+        // Recur into the right subtree
+        root->right = deleteNode(root->right, i);
+    }
+
+    // Update the `max` value of this node
+    root->max = std::max(root->i->high,
+                         std::max(root->left ? root->left->max : LLONG_MIN,
+                                  root->right ? root->right->max : LLONG_MIN));
+
+    return root;
+}
+
+void IntervalTree::deleteNode(Interval i) {
+    root = deleteNode(root, i);
 }

@@ -9,13 +9,15 @@
 
 class IntervalTree {
 
-private:    
+public:
 
 //interval stucture
 struct Interval {
     long long low;
     long long high;
 };
+
+private:
 
 //node struct 
 struct Node {
@@ -38,6 +40,8 @@ Node* insert(Node* root,Interval i);
 bool Overlap(Interval i1, Interval i2)const;
 void stabbingQuery(Node* root, long long point, std::vector<Interval>& result) const;
 void freeTree(Node* root);
+Node* deleteNode(Node* root, Interval i); 
+int getHeight(Node* root) const;
 
 
 public:
@@ -49,6 +53,8 @@ public:
     void insert(Interval i);
     void insert(long long low, long long high);  
     std::vector<Interval> stabbingQuery(long long point);
+    void deleteNode(Interval i);
+    void printIntervalTree() const;
 };
 
 
