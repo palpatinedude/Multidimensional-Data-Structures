@@ -54,7 +54,6 @@ public:
     void insert(long long low, long long high);  
     std::vector<Interval> stabbingQuery(long long point);
     void deleteNode(Interval i);
-    void printIntervalTree() const;
 };
 
 

@@ -157,3 +157,17 @@ IntervalTree::Node* IntervalTree::deleteNode(Node* root, Interval i) {
 void IntervalTree::deleteNode(Interval i) {
     root = deleteNode(root, i);
 }
+
+// Function to get height of tree
+int IntervalTree::getHeight(Node* root) const {
+    if (root == nullptr)
+        return 0;
+
+    int left_height = getHeight(root->left);
+    int right_height = getHeight(root->right);
+
+    return 1 + std::max(left_height, right_height);
+}
+
+
+
