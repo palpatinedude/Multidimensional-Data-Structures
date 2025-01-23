@@ -28,8 +28,8 @@ void loadFromJson(IntervalTree& tree, const std::string& processed_trajectories)
     }
 }
 
-int main() {
-    IntervalTree tree;
+/* int main() {
+IntervalTree tree;
 
     try {
         loadFromJson(tree, "../data/processed_trajectories.json");
@@ -52,7 +52,8 @@ int main() {
     }
 
     return 0;
-}
+}*/
+
 
 /*int main() {
     IntervalTree tree;
@@ -82,6 +83,42 @@ int main() {
     return 0;
 }*/
 
+int main() {
+    IntervalTree tree;
 
+    // Insert intervals
+    std::cout << "Inserting intervals..." << std::endl;
+    tree.insert(10, 20);
+    tree.insert(5, 15);
+    tree.insert(17, 25);
+    tree.insert(3, 8);
+    tree.insert(12, 18);
 
+    // Print the tree
+    std::cout << "\nInterval Tree after insertions:" << std::endl;
+    tree.printIntervalTree();
 
+    // Perform a stabbing query
+    std::cout << "\nPerforming stabbing query for point 15:" << std::endl;
+    std::vector<IntervalTree::Interval> result = tree.stabbingQuery(15);
+    for (const auto& interval : result) {
+        std::cout << "[" << interval.low << ", " << interval.high << "]" << std::endl;
+    }
+
+    // Perform a deletion
+    std::cout << "\nDeleting interval [10, 20]..." << std::endl;
+    tree.deleteNode({10, 20});
+
+    // Print the tree again
+    std::cout << "\nInterval Tree after deletion:" << std::endl;
+    tree.printIntervalTree();
+
+    // Perform another stabbing query
+    std::cout << "\nPerforming stabbing query for point 17:" << std::endl;
+    result = tree.stabbingQuery(17);
+    for (const auto& interval : result) {
+        std::cout << "[" << interval.low << ", " << interval.high << "]" << std::endl;
+    }
+
+    return 0;
+}

@@ -25,10 +25,11 @@ struct Node {
     long long max;
     Node* left;
     Node* right;
+    int height; // Height of the node optimal way
 
     // Constructor for Node
         Node(Interval interval)
-            : i(new Interval(interval)), max(interval.high), left(nullptr), right(nullptr) {}
+            : i(new Interval(interval)), max(interval.high),height(1), left(nullptr), right(nullptr) {}
         ~Node() { delete i; }
 };
 
@@ -41,7 +42,14 @@ bool Overlap(Interval i1, Interval i2)const;
 void stabbingQuery(Node* root, long long point, std::vector<Interval>& result) const;
 void freeTree(Node* root);
 Node* deleteNode(Node* root, Interval i); 
-int getHeight(Node* root) const;
+
+//To balance the tree
+int getHeight(Node* node) const;
+int getBalanceFactor(Node* node);
+Node* rotateRight(Node* y);
+Node* rotateLeft(Node* x);
+Node* leftRightRotate(Node* node);
+Node* rightLeftRotate(Node* node);
 
 
 public:
@@ -54,6 +62,7 @@ public:
     void insert(long long low, long long high);  
     std::vector<Interval> stabbingQuery(long long point);
     void deleteNode(Interval i);
+    void printIntervalTree() const;
 };
 
 
