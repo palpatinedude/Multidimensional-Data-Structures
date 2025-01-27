@@ -319,3 +319,31 @@ void IntervalTree::printIntervalTree() const {
     // Start the recursive printing from root, which is marked as the root node
     printTree(root, "", false, true, printTree);
 }
+
+
+void IntervalTree::rangeQuery(Node* root, Interval query, std::vector<Interval>& result) const {
+    if (!root) return;
+
+    // If the current node's interval overlaps with the query interval, add it to the result
+    if (Overlap(*(root->i), query)) {
+        result.push_back(*(root->i));
+    }
+
+    // If the left child's max value is greater than or equal to the query's low,
+    // then intervals in the left subtree may overlap
+    if (root->left && root->left->max >= query.low) {
+        rangeQuery(root->left, query, result);
+    }
+
+    // Always check the right subtree as well if its low might overlap
+    if (root->right && root->i->low <= query.high) {
+        rangeQuery(root->right, query, result);
+    }
+}
+
+std::vector<IntervalTree::Interval> IntervalTree::rangeQuery(long long low, long long high) {
+    std::vector<Interval> result;
+    Interval query = {low, high};
+    rangeQuery(root, query, result);
+    return result;
+}

@@ -42,6 +42,7 @@ bool Overlap(Interval i1, Interval i2)const;
 void stabbingQuery(Node* root, long long point, std::vector<Interval>& result) const;
 void freeTree(Node* root);
 Node* deleteNode(Node* root, Interval i); 
+void rangeQuery(Node* root, Interval query, std::vector<Interval>& result) const;
 
 //To balance the tree
 int getHeight(Node* node) const;
@@ -63,6 +64,7 @@ public:
     std::vector<Interval> stabbingQuery(long long point);
     void deleteNode(Interval i);
     void printIntervalTree() const;
+    std::vector<Interval> rangeQuery(long long low, long long high);
 };
 
 

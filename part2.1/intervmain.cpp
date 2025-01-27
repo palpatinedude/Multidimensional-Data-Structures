@@ -83,7 +83,7 @@ IntervalTree tree;
     return 0;
 }*/
 
-int main() {
+/*int main() {
     IntervalTree tree;
 
     // Insert intervals
@@ -121,4 +121,92 @@ int main() {
     }
 
     return 0;
+}*/
+
+int main() {
+    IntervalTree tree;
+    std::string filename = "C:\\project_multidimentional\\data\\processed_trajectories_final.json";
+
+    try {
+        // Load intervals from JSON
+        loadFromJson(tree, filename);
+        std::cout << "All intervals have been loaded into the Interval Tree.\n";
+
+        // Interactive menu
+        while (true) {
+            std::cout << "\nOptions:\n"
+                      << "1. Perform stabbing query (find intervals containing a point).\n"
+                      << "2. Perform range query (find intervals overlapping a range).\n"
+                      << "3. Print the Interval Tree.\n"
+                      << "4. Exit.\n"
+                      << "Enter your choice: ";
+            int choice;
+            std::cin >> choice;
+
+            // Handle invalid input for choice
+            if(std::cin.fail()) {
+                std::cin.clear(); // clear error flag
+                std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n'); // discard bad input
+                std::cout << "Invalid choice. Please enter a valid number.\n";
+                continue;
+            }
+
+            if (choice == 1) {
+                long long point;
+                std::cout << "Enter the point to query: ";
+                std::cin >> point;
+
+                if(std::cin.fail()) {
+                    std::cin.clear(); 
+                    std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n'); 
+                    std::cout << "Invalid input for point. Please enter a valid number.\n";
+                    continue;
+                }
+
+                auto results = tree.stabbingQuery(point);
+                if (results.empty()) {
+                    std::cout << "No intervals contain the point " << point << ".\n";
+                } else {
+                    std::cout << "Intervals containing point " << point << ":\n";
+                    for (const auto& interval : results) {
+                        std::cout << "[" << interval.low << ", " << interval.high << "]\n";
+                    }
+                }
+            } else if (choice == 2) {
+                long long low, high;
+                std::cout << "Enter the range to query (low high): ";
+                std::cin >> low >> high;
+
+                if(std::cin.fail()) {
+                    std::cin.clear();
+                    std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+                    std::cout << "Invalid input for range. Please enter valid numbers.\n";
+                    continue;
+                }
+
+                auto results = tree.rangeQuery(low, high);
+                if (results.empty()) {
+                    std::cout << "No intervals overlap with the range [" << low << ", " << high << "].\n";
+                } else {
+                    std::cout << "Intervals overlapping with the range [" << low << ", " << high << "]:\n";
+                    for (const auto& interval : results) {
+                        std::cout << "[" << interval.low << ", " << interval.high << "]\n";
+                    }
+                }
+            } else if (choice == 3) {
+                std::cout << "Printing the Interval Tree:\n";
+                tree.printIntervalTree();
+            } else if (choice == 4) {
+                std::cout << "Exiting the program.\n";
+                break;
+            } else {
+                std::cout << "Invalid choice. Please try again.\n";
+            }
+        }
+    } catch (const std::exception& ex) {
+        std::cerr << "Error: " << ex.what() << std::endl;
+        return EXIT_FAILURE;
+    }
+
+    return EXIT_SUCCESS;
 }
