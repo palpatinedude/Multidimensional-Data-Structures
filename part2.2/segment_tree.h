@@ -35,12 +35,11 @@ delete left;
 delete right;
 }
 
-int countDrivers() {
-    driverCount = driverIds.size(); //get the number of driver ids
-    return driverCount;
-}
+//public functions
+int countDrivers();
 
 };
+
 
 class SegmentTree {
 
@@ -48,7 +47,28 @@ class SegmentTree {
 private:
 Node* root;
 
+//private functions
+Node* buildTree(const std::vector<long long>& timestamps, int start, int end);
 
+public:
+
+  // Constructor 
+SegmentTree(const std::vector<long long>& timestamps) {
+    std::vector<long long> sortedTimestamps = timestamps;
+
+    // Sort timestamps to maintain correct order
+    std::sort(sortedTimestamps.begin(), sortedTimestamps.end());
+
+    // Build the tree bottom-up
+    root = buildTree(sortedTimestamps, 0, sortedTimestamps.size() - 1);
+}
+    // Destructor
+~SegmentTree() {
+    delete root;
+}
+
+//public functions
+int query(long long queryLow, long long queryHigh);
 
 };
 
