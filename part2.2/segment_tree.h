@@ -26,7 +26,7 @@ Node* left;
 Node* right;
 
 //Constructor
-Node(long long low, long long high, long long val = 0)
+Node(long long low, long long high, int driverCount = 0)
 : interval{low, high},driverCount(0) , left(nullptr), right(nullptr) {}
 
 //Destructor
@@ -36,7 +36,7 @@ delete right;
 }
 
 //public functions
-int countDrivers();
+void updateDriverCount();
 
 };
 
@@ -48,19 +48,17 @@ private:
 Node* root;
 
 //private functions
-Node* buildTree(const std::vector<long long>& timestamps, int start, int end);
+Node* buildTree(const std::vector<long long>& timestamps, const std::vector<std::tuple<long, long long, long long>>& driverTrips,int start, int end);
 
 public:
 
-  // Constructor 
-SegmentTree(const std::vector<long long>& timestamps) {
-    std::vector<long long> sortedTimestamps = timestamps;
+    // Constructor to build the tree
+    SegmentTree(const std::vector<long long>& timestamps,
+                const std::vector<std::tuple<long, long long, long long>>& driverTrips) {
 
-    // Sort timestamps to maintain correct order
-    std::sort(sortedTimestamps.begin(), sortedTimestamps.end());
+    //build the tree
+        root = buildTree(timestamps, driverTrips, 0, timestamps.size() - 1);
 
-    // Build the tree bottom-up
-    root = buildTree(sortedTimestamps, 0, sortedTimestamps.size() - 1);
 }
     // Destructor
 ~SegmentTree() {
