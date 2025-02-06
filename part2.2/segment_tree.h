@@ -36,7 +36,7 @@ delete right;
 }
 
 //public functions
-void updateDriverCount();
+void updateDriverCount(const std::vector<std::tuple<long, long long, long long>>& driverTrips);
 
 };
 
@@ -48,18 +48,17 @@ private:
 Node* root;
 
 //private functions
-Node* buildTree(const std::vector<long long>& timestamps, const std::vector<std::tuple<long, long long, long long>>& driverTrips,int start, int end);
+    Node* buildTree(const std::vector<long long>& timestamps, 
+                    const std::vector<std::tuple<long, long long, long long>>& driverTrips, 
+                    int start, int end);
 
 public:
+ //Default Constructor
+SegmentTree() : root(nullptr) {}
 
-    // Constructor to build the tree
-    SegmentTree(const std::vector<long long>& timestamps,
-                const std::vector<std::tuple<long, long long, long long>>& driverTrips) {
-
-    //build the tree
-        root = buildTree(timestamps, driverTrips, 0, timestamps.size() - 1);
-
-}
+// Constructor to build the tree
+SegmentTree(const std::vector<long long>& timestamps, 
+    const std::vector<std::tuple<long, long long, long long>>& driverTrips);
     // Destructor
 ~SegmentTree() {
     delete root;
