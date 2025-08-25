@@ -1,0 +1,28 @@
+API Folder Structure Overview
+=============================
+
+This folder contains the source code for a multidimensional data handling API. It is organized as follows:
+
+1. include/ 
+   - Contains header files (.h) and inline helper files (.inl) for defining classes and functions.
+   - Files:
+     - bbox3D.h       : Defines 3D bounding box structures and methods.
+     - point3D.h      : Defines 3D point structures and operations.
+     - RTree.h        : Defines the R-Tree data structure interface.
+     - RTreeNode.h    : Defines the R-Tree node structure.
+     - splitHelpers.inl : Contains inline helper functions for splitting nodes in R-Tree.
+     - trajectory.h   : Defines trajectory data structures.
+
+2. src/
+   - Contains implementation files (.cpp) and compiled object files (.o) for the API.
+   - Files:
+     - bbox3D.cpp, bbox3D.o
+     - point3D.cpp, point3D.o
+     - RTree.cpp, RTree.o
+     - RTreeNode.cpp, RTreeNode.o
+     - trajectory.cpp, trajectory.o
+
+Notes:
+------
+- Header files in 'include' are used to define the structure and interfaces.
+- Source files in 'src' implement the logic defined in the headers.
