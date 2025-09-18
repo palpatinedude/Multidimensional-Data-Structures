@@ -1,0 +1,60 @@
+This file provides example queries to run using the API's queries functionality.
+
+-----------------------------
+Range Queries Example
+-----------------------------
+
+Example 1
+Normal format:
+Start: July 15, 2017, 09:00
+End: September 20, 2017, 17:00
+
+ISO 8601 format:
+Start: 2017-07-15T09:00:00Z
+End: 2017-09-20T17:00:00Z
+
+Example 2
+Normal format:
+Start: December 3, 2017, 14:30
+End: April 5, 2018, 19:00
+
+ISO 8601 format:
+Start: 2017-12-03T14:30:00Z
+End: 2018-04-05T19:00:00Z
+
+Example 3
+Normal format:
+Start: June 10, 2018, 08:00
+End: October 15, 2018, 12:30
+
+ISO 8601 format:
+Start: 2018-06-10T08:00:00Z
+End: 2018-10-15T12:30:00Z
+
+Example 4
+Normal format:
+Start: February 20, 2019, 13:15
+End: June 25, 2019, 18:45
+
+ISO 8601 format:
+Start: 2019-02-20T13:15:00Z
+End: 2019-06-25T18:45:00Z
+
+Example 5
+Normal format:
+Start: August 15, 2018, 14:30
+End: February 3, 2025, 09:45
+
+ISO 8601 format:
+Start: 2018-08-15T14:30:00Z
+End: 2025-02-03T09:45:00Z
+
+-----------------------------
+FindSimilar,KNN Query Example
+-----------------------------
+Query type: FindSimilar,KNN
+Item IDs: 101_13202, 219_5243, 135_914, 248_6603, 236_6129, 68_11424, 259_6880
+
+
+
+
