@@ -1,12 +1,27 @@
 """
-query_trajectories_range.py
+CityTrek-14K Preprocessed Trajectories Utility
 
-Query trajectories by a timestamp range from preprocessed CityTrek-14K data.
-Outputs:
-- Number of trajectories in the range
-- Number of unique vehicles in the range
-- Trajectory IDs
+This file provides two main options for working with the preprocessed dataset:
+
+1. Query trajectories by a timestamp range
+   - The code block is currently commented out.
+   - Outputs:
+       * Number of trajectories in the range
+       * Number of unique vehicles in the range
+       * Trajectory IDs
+
+2. Spatio-temporal kNN search with unique-vehicle constraint
+   - The active code runs this option.
+   - Outputs:
+       * The query trajectory
+       * The nearest neighbors from different vehicles
+       * Trajectory IDs, coordinates, timestamps, and spatio-temporal distance
+
+To use option 1 (range query), uncomment the corresponding code block.
+To use option 2 (kNN search), leave the kNN code uncommented.
 """
+
+
 """
 import pandas as pd
 import dask.dataframe as dd
@@ -51,12 +66,6 @@ for traj_id in trajectory_ids:
 
 """
 
-"""
-helper.py
-
-Spatio-temporal kNN on CityTrek-14K dataset with unique-vehicle constraint.
-Uses all points to ensure N_NEIGHBORS unique vehicles.
-"""
 
 import pandas as pd
 import dask.dataframe as dd
