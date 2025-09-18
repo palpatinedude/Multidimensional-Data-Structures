@@ -1,3 +1,12 @@
+// ============================================================================
+// evaluation.h
+//
+// Provides tools to evaluate RTree performance against linear scan for trajectory queries.
+// - Supports range queries, k-nearest neighbors (kNN), and similarity queries.
+// - Measures query time, result count, and uniqueness.
+// - Saves individual query results and overall summaries to CSV files.
+// ============================================================================
+
 #ifndef EVALUATION_H
 #define EVALUATION_H
 
@@ -9,6 +18,7 @@
 #include "../api/include/RTree.h"
 #include "../api/include/bbox3D.h"
 
+// Structure to store query statistics
 struct QueryStats {
     std::string type;
     std::string city;
@@ -28,32 +38,44 @@ struct QueryStats {
 
 class Evaluation {
 private:
-    RTree& rtree;
-    const std::vector<Trajectory>& trajectories;     // used by RTree
-    const std::vector<Trajectory>& trajectoriesCopy; // used by Linear Scan
-    std::string folder;
+    RTree& rtree;                              // RTree index for queries
+    const std::vector<Trajectory> trajectories;     // Used for RTree queries
+    const std::vector<Trajectory> trajectoriesCopy; // Used for linear scan
+    std::string folder;                         // Output folder for results
 
-    // Save query results to CSV
     void saveQueryResults(int queryIndex, const std::string& queryType,
                           const std::vector<Trajectory>& rtreeResults,
-                          const std::vector<Trajectory>& linearResults);
+                          const std::vector<Trajectory>& linearResults); // Save query results 
 
-    // Find trajectory by ID
-    const Trajectory* findTrajectoryById(const std::string& trajId);
+    void saveQueryResultsForPlot(int queryIndex, 
+                                         const std::string& queryType,
+                                         const Trajectory* queryTraj,
+                                         const std::vector<Trajectory>& results);                    
 
-    // Linear scan helper: returns matching trajectories, fills count/unique vehicles
-    std::vector<Trajectory> linearScan(const std::function<bool(const Trajectory&)>& predicate,
-                                       const Trajectory* exclude,
-                                       size_t& outCount,
-                                       size_t& outUnique,
-                                       size_t maxCount = 0);
+
+    std::vector<Trajectory> linearScan(
+        const std::function<bool(const Trajectory&)>& predicate,
+        const Trajectory* exclude,
+        size_t& outCount,
+        size_t& outUnique,
+        size_t maxCount = 0,
+        const std::function<float(const Trajectory&)>& distanceFunc = nullptr
+    ); // Unified linear scan for all queries for comparison
+
+    std::vector<Trajectory> filterUniqueTrajectories(const std::vector<Trajectory>& input,
+                                                     const Trajectory* exclude = nullptr,
+                                                     size_t maxCount = 0); // Keep only unique trajectories 
+
+    const Trajectory* findTrajectoryById(const std::string& trajId); // Find trajectory by ID                                                 
 
 public:
+    // ---------------- Constructor ----------------
     Evaluation(RTree& tree,
-               const std::vector<Trajectory>& trajs,
-               const std::vector<Trajectory>& trajsCopy,
+               const std::vector<Trajectory> trajs,
+               const std::vector<Trajectory> trajsCopy,
                const std::string& resultFolder = "results");
 
+    // ---------------- Query methods ----------------
     QueryStats runRangeQuery(const std::string& city,
                              const std::string& startTime,
                              const std::string& endTime,
@@ -63,12 +85,14 @@ public:
 
     QueryStats runSimilarityQuery(const std::string& trajId, float threshold, int queryIndex);
 
+    // ---------------- Result processing ----------------
     void saveSummary(const std::vector<QueryStats>& statsList);
 
-    // Remove duplicates and optionally exclude a trajectory
-    std::vector<Trajectory> filterUniqueTrajectories(const std::vector<Trajectory>& input,
-                                                     const Trajectory* exclude = nullptr,
-                                                     size_t maxCount = 0);
+    // ---------------- Getters ----------------
+    const std::vector<Trajectory>& getTrajectories() const { return trajectories; }
+
+   
+
 };
 
 #endif // EVALUATION_H
