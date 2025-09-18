@@ -24,6 +24,15 @@
 #include "trajectory.h"
 #include "bbox3D.h"
 
+struct TrajectorySummary {
+    std::string id;
+    BoundingBox3D bbox;           // precomputed bounding box
+    float centroidX;              // mean x
+    float centroidY;              // mean y
+    float centroidT;              // mean timestamp in seconds
+    std::shared_ptr<Trajectory> fullTrajectory; // pointer to full trajectory
+};
+
 class RTree {
 private:
     std::shared_ptr<RTreeNode> root;   // Root node of the tree
@@ -31,7 +40,7 @@ private:
 
     // ---------------- Stats ----------------
     size_t getTotalEntries() const;  // Count total trajectories
-    int getHeight() const;           // Compute tree height
+   // int getHeight() const;           // Compute tree height
 
 public:
     // ---------------- Constructors ----------------
@@ -43,6 +52,9 @@ public:
     bool update(const Trajectory& traj);     // Update trajectory (delete + insert if needed)
     void bulkLoad(std::vector<Trajectory>& trajectories); // Build tree using STR bulk-loading
 
+    // ---------------- Helper for faster queries ----------------
+    std::vector<TrajectorySummary> computeSummaries(const std::vector<Trajectory>& trajectories); // Precompute summaries for trajectories allowing fast pruning
+
     // ---------------- Query operations ----------------
     std::vector<Trajectory> rangeQuery(const BoundingBox3D& queryBox) const;  // Spatial range search
    // std::vector<Trajectory> kNearestNeighbors(const Trajectory& query, size_t k) const; // k-NN query
@@ -52,10 +64,15 @@ public:
 
     // ---------------- Persistence ----------------
     void exportToJSON(const std::string& filename) const;      // Save to JSON file
-    static std::vector<Trajectory> loadFromJSON(const std::string& filepath); // Load trajectories from JSON
+    //static std::vector<Trajectory> loadFromJSON(const std::string& filepath); // Load trajectories from JSON
+    static std::vector<Trajectory> loadFromParquet(const std::string& filepath); // Load trajectories from Parquet file
 
     // ---------------- Print Statistics ----------------
     void printStatistics() const;    // Print tree stats
+
+    // ---------------- Getter ----------------
+    std::shared_ptr<RTreeNode> getRoot() const { return root; }
+    int getHeight() const;           // Compute tree height
 };
 
 #endif // RTREE_H

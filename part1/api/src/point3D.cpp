@@ -4,11 +4,11 @@
 
 // -------------------- Constructors --------------------
 
-// Default constructor: initializes to (0, 0, "")
-Point3D::Point3D() : x(0.0f), y(0.0f), t("") {}
+// Default constructor: initializes to (0, 0, 0)
+Point3D::Point3D() : x(0.0f), y(0.0f), t(0) {}
 
 // Parameterized constructor: initializes with given values and validates
-Point3D::Point3D(float x, float y, const std::string& t) : x(x), y(y), t(t) {
+Point3D::Point3D(float x, float y, int64_t t) : x(x), y(y), t(t) {
     validate();
 }
 
@@ -16,10 +16,10 @@ Point3D::Point3D(float x, float y, const std::string& t) : x(x), y(y), t(t) {
 Point3D::Point3D(const Point3D& other) : x(other.x), y(other.y), t(other.t) {}
 
 // Move constructor: transfers ownership and resets source
-Point3D::Point3D(Point3D&& other) noexcept : x(other.x), y(other.y), t(std::move(other.t)) {
+Point3D::Point3D(Point3D&& other) noexcept : x(other.x), y(other.y), t(other.t) {
     other.x = 0.0f;
     other.y = 0.0f;
-    other.t.clear();
+    other.t = 0;
 }
 
 // -------------------- Assignment Operators --------------------
@@ -39,10 +39,10 @@ Point3D& Point3D::operator=(Point3D&& other) noexcept {
     if (this != &other) {
         x = other.x;
         y = other.y;
-        t = std::move(other.t);
+        t = other.t;
         other.x = 0.0f;
         other.y = 0.0f;
-        other.t.clear();
+        other.t = 0;
     }
     return *this;
 }
@@ -50,13 +50,13 @@ Point3D& Point3D::operator=(Point3D&& other) noexcept {
 // -------------------- Accessors --------------------
 float Point3D::getX() const { return x; }
 float Point3D::getY() const { return y; }
-std::string Point3D::getT() const { return t; }
+int64_t Point3D::getT() const { return t; }
 
 // -------------------- Utilities --------------------
 
 // Print the Point3D to the console
 void Point3D::print() const {
-    std::cout << "Point3D(x=" << x << ", y=" << y << ", t=\"" << t << "\")\n";
+    std::cout << "Point3D(x=" << x << ", y=" << y << ", t=" << t << ")\n";
 }
 
 // Convert the Point3D to JSON format
@@ -70,8 +70,8 @@ void Point3D::validate() const {
         std::cerr << "[Warning] Latitude out of range: " << y << "\n";
     if (x < -180.0f || x > 180.0f)
         std::cerr << "[Warning] Longitude out of range: " << x << "\n";
-    if (t.empty())
-        std::cerr << "[Warning] Timestamp is empty\n";
+    if (t == 0)
+        std::cerr << "[Warning] Timestamp is zero\n";
 }
 
 // -------------------- Comparison Operators --------------------
@@ -82,7 +82,6 @@ bool Point3D::operator==(const Point3D& other) const {
 bool Point3D::operator!=(const Point3D& other) const {
     return !(*this == other);
 }
-
 
 // -------------------- Distance Calculations --------------------
 

@@ -4,11 +4,6 @@
 #include <cmath>
 #include <iostream>
 
-namespace timeUtil {
-    // Convert timestamp string to seconds (placeholder)
-    int parseTimestampToSeconds(const std::string& timestamp);
-}
-
 // -------------------- Constructors --------------------
 
 BoundingBox3D::BoundingBox3D()
@@ -16,10 +11,10 @@ BoundingBox3D::BoundingBox3D()
       minY(std::numeric_limits<float>::max()),
       maxX(std::numeric_limits<float>::lowest()),
       maxY(std::numeric_limits<float>::lowest()),
-      minT(""), maxT("") {}
+      minT(0), maxT(0) {}
 
-BoundingBox3D::BoundingBox3D(float minX_, float minY_, const std::string& minT_,
-               float maxX_, float maxY_, const std::string& maxT_)
+BoundingBox3D::BoundingBox3D(float minX_, float minY_, int64_t minT_,
+                             float maxX_, float maxY_, int64_t maxT_)
     : minX(minX_), minY(minY_), maxX(maxX_), maxY(maxY_), minT(minT_), maxT(maxT_) {
     validate();
 }
@@ -27,14 +22,7 @@ BoundingBox3D::BoundingBox3D(float minX_, float minY_, const std::string& minT_,
 // -------------------- Validation --------------------
 
 bool BoundingBox3D::validate() const {
-    /*
-    bool valid = true;
-    if (minX > maxX) { std::cerr << "[Warning] minX > maxX\n"; valid = false; }
-    if (minY > maxY) { std::cerr << "[Warning] minY > maxY\n"; valid = false; }
-    if (minT.empty()) { std::cerr << "[Warning] minT is empty\n"; valid = false; }
-    if (maxT.empty()) { std::cerr << "[Warning] maxT is empty\n"; valid = false; }
-    return valid;*/
-    return minX <= maxX && minY <= maxY && !minT.empty() && !maxT.empty();
+    return minX <= maxX && minY <= maxY && minT != 0 && maxT != 0;
 }
 
 // -------------------- Expansion --------------------
@@ -51,10 +39,8 @@ void BoundingBox3D::expandToInclude(const Point3D& pt) {
     maxX = std::max(maxX, pt.getX());
     maxY = std::max(maxY, pt.getY());
 
-    if (!minT.empty() && timeUtil::parseTimestampToSeconds(pt.getT()) < timeUtil::parseTimestampToSeconds(minT))
-        minT = pt.getT();
-    if (!maxT.empty() && timeUtil::parseTimestampToSeconds(pt.getT()) > timeUtil::parseTimestampToSeconds(maxT))
-        maxT = pt.getT();
+    if (pt.getT() < minT) minT = pt.getT();
+    if (pt.getT() > maxT) maxT = pt.getT();
 }
 
 void BoundingBox3D::expandToInclude(Point3D&& pt) { expandToInclude(pt); }
@@ -68,10 +54,8 @@ void BoundingBox3D::expandToInclude(const BoundingBox3D& other) {
     maxX = std::max(maxX, other.maxX);
     maxY = std::max(maxY, other.maxY);
 
-    if (timeUtil::parseTimestampToSeconds(other.minT) < timeUtil::parseTimestampToSeconds(minT))
-        minT = other.minT;
-    if (timeUtil::parseTimestampToSeconds(other.maxT) > timeUtil::parseTimestampToSeconds(maxT))
-        maxT = other.maxT;
+    if (other.minT < minT) minT = other.minT;
+    if (other.maxT > maxT) maxT = other.maxT;
 }
 
 void BoundingBox3D::expandToInclude(BoundingBox3D&& other) { expandToInclude(other); }
@@ -81,23 +65,21 @@ void BoundingBox3D::expandToInclude(BoundingBox3D&& other) { expandToInclude(oth
 bool BoundingBox3D::intersects(const BoundingBox3D& other, float epsilon) const {
     return !(maxX + epsilon < other.minX || minX > other.maxX + epsilon ||
              maxY + epsilon < other.minY || minY > other.maxY + epsilon ||
-             timeUtil::parseTimestampToSeconds(maxT) < timeUtil::parseTimestampToSeconds(other.minT) ||
-             timeUtil::parseTimestampToSeconds(minT) > timeUtil::parseTimestampToSeconds(other.maxT));
+             maxT < other.minT || minT > other.maxT);
 }
 
 bool BoundingBox3D::contains(const Point3D& pt, float epsilon) const {
-    int tSec = timeUtil::parseTimestampToSeconds(pt.getT());
+    int64_t t = pt.getT();
     return (pt.getX() >= minX - epsilon && pt.getX() <= maxX + epsilon &&
             pt.getY() >= minY - epsilon && pt.getY() <= maxY + epsilon &&
-            tSec >= timeUtil::parseTimestampToSeconds(minT) &&
-            tSec <= timeUtil::parseTimestampToSeconds(maxT));
+            t >= minT && t <= maxT);
 }
 
 float BoundingBox3D::volume() const {
     if (!validate()) return 0.0f;
     float dx = maxX - minX;
     float dy = maxY - minY;
-    float dt = static_cast<float>(timeUtil::parseTimestampToSeconds(maxT) - timeUtil::parseTimestampToSeconds(minT));
+    float dt = static_cast<float>(maxT - minT);
     return std::max(0.0f, dx * dy * dt);
 }
 
@@ -111,8 +93,8 @@ float BoundingBox3D::distanceSquaredTo(const BoundingBox3D& other) const {
     float dx = std::max(0.0f, std::max(other.minX - maxX, minX - other.maxX));
     float dy = std::max(0.0f, std::max(other.minY - maxY, minY - other.maxY));
     float dt = std::max(0.0f, std::max(
-        static_cast<float>(timeUtil::parseTimestampToSeconds(other.minT) - timeUtil::parseTimestampToSeconds(maxT)),
-        static_cast<float>(timeUtil::parseTimestampToSeconds(minT) - timeUtil::parseTimestampToSeconds(other.maxT))
+        static_cast<float>(other.minT - maxT),
+        static_cast<float>(minT - other.maxT)
     ));
     return dx*dx + dy*dy + dt*dt;
 }
@@ -127,8 +109,8 @@ float BoundingBox3D::getMinX() const { return minX; }
 float BoundingBox3D::getMinY() const { return minY; }
 float BoundingBox3D::getMaxX() const { return maxX; }
 float BoundingBox3D::getMaxY() const { return maxY; }
-std::string BoundingBox3D::getMinT() const { return minT; }
-std::string BoundingBox3D::getMaxT() const { return maxT; }
+int64_t BoundingBox3D::getMinT() const { return minT; }
+int64_t BoundingBox3D::getMaxT() const { return maxT; }
 
 // -------------------- Utilities --------------------
 

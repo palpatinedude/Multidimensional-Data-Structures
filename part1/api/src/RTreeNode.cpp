@@ -116,6 +116,9 @@ int RTreeNode::chooseSubtree(const BoundingBox3D& box) const {
             bestIndex = static_cast<int>(i);
         }
     }
+    if (bestIndex < 0) {
+        throw std::runtime_error("chooseSubtree failed to pick a child , unexpected state.");
+    }
     return bestIndex;
 }
 
@@ -215,6 +218,51 @@ void RTreeNode::rangeQuery(const BoundingBox3D& queryBox, std::vector<Trajectory
 
 // Find similar trajectories within threshold
 void RTreeNode::findSimilar(const Trajectory& query, float maxDistance, std::vector<Trajectory>& results) const {
+    BoundingBox3D queryBox = query.getBoundingBox(); // use precomputed bounding box
+
+    // Prune node if minimum distance to queryBox exceeds threshold
+    if (!isLeaf) {
+        float minDistSq = getMBR().distanceSquaredTo(queryBox);
+        if (minDistSq > maxDistance * maxDistance) return; // cannot contain similar trajectories
+    } else {
+        // For leaf nodes, still check MBR intersection for fast prune
+        if (!getMBR().intersects(queryBox) && maxDistance > 0.0f) return;
+    }
+
+    if (isLeaf) {
+        // Check each trajectory in the leaf
+        for (const auto& [_, trajPtr] : leafEntries) {
+            if (!trajPtr) continue;
+
+            // Fast approximate check using centroids / bounding boxes
+            float approxDist = query.approximateDistance(*trajPtr, 1e-5f);
+            if (approxDist <= maxDistance) {
+                // Optional: recompute exact spatio-temporal similarity
+                if (query.similarityTo(*trajPtr) <= maxDistance) {
+                    results.push_back(*trajPtr);
+                }
+            }
+        }
+    } else {
+        // Recurse into children
+        for (const auto& [childBox, child] : childEntries) {
+            float minDistSq = childBox.distanceSquaredTo(queryBox);
+            if (minDistSq <= maxDistance * maxDistance) {
+                child->findSimilar(query, maxDistance, results);
+            }
+        }
+    }
+}
+
+
+
+
+
+
+
+
+/*
+void RTreeNode::findSimilar(const Trajectory& query, float maxDistance, std::vector<Trajectory>& results) const {
     BoundingBox3D queryBox = query.computeBoundingBox();
 
     // Skip node if MBR does not intersect
@@ -230,50 +278,63 @@ void RTreeNode::findSimilar(const Trajectory& query, float maxDistance, std::vec
         for (const auto& [box, child] : childEntries)
             if (box.intersects(queryBox)) child->findSimilar(query, maxDistance, results);
     }
-}
-/*
-// Find the k nearest trajectories to the query
-std::vector<Trajectory> RTreeNode::kNearestNeighbors(const Trajectory& query, size_t k) const {
+}*/
 
-    std::priority_queue<ResultEntry> knn;  // max-heap storing current k nearest trajectories
-    std::priority_queue<HeapEntry> pq;     // min-heap storing nodes to explore
+std::vector<Trajectory> RTreeNode::kNearestNeighbors(
+    const Trajectory& query, 
+    size_t k, 
+    float timeScale, 
+    size_t candidateMultiplier) const
+{
+    using ResultPair = std::pair<float, std::shared_ptr<Trajectory>>; // distance^2, trajectory pointer
 
-    BoundingBox3D queryBox = query.computeBoundingBox(); // compute bounding box of query once
+    // Max-heap: largest distance on top
+    auto cmpMax = [](const ResultPair& a, const ResultPair& b) { return a.first < b.first; };
+    std::priority_queue<ResultPair, std::vector<ResultPair>, decltype(cmpMax)> knn(cmpMax);
 
-    // Start with the root node, distance = 0
+    // Min-heap for RTree node traversal
+    using HeapEntry = std::pair<float, std::shared_ptr<RTreeNode>>;
+    auto cmpMin = [](const HeapEntry& a, const HeapEntry& b) { return a.first > b.first; };
+    std::priority_queue<HeapEntry, std::vector<HeapEntry>, decltype(cmpMin)> pq(cmpMin);
+
+    // Start from this node
     pq.push({0.0f, std::const_pointer_cast<RTreeNode>(shared_from_this())});
 
-    // Lambda to get the farthest distance in the current knn heap
+    size_t kCandidates = std::max<size_t>(k * candidateMultiplier, k);
+
     auto getFarthestDistSq = [&]() -> float {
-        return knn.empty() ? std::numeric_limits<float>::max() : knn.top().distSq;
+        return knn.empty() ? std::numeric_limits<float>::infinity() : knn.top().first;
     };
 
-    while (!pq.empty()) {
-        // Pop the node closest to query so far
-        auto [distSqNode, node] = pq.top(); 
-        pq.pop();
+    const BoundingBox3D& queryBox = query.getBoundingBox();
 
-        // If closest node is farther than farthest in knn, we can stop
-        if (distSqNode > getFarthestDistSq()) break;
+    while (!pq.empty()) {
+        auto [nodeDistSq, node] = pq.top(); pq.pop();
+
+        // prune entire branch
+        if (nodeDistSq > getFarthestDistSq()) break;
 
         if (node->isLeaf) {
-            // Leaf node: check all trajectories
-            for (const auto& [_, trajPtr] : node->leafEntries) {
-                float distSq = query.spatioTemporalDistanceTo(*trajPtr); // squared distance to trajectory
+            // Leaf nodes: check trajectories
+            for (const auto& [box, trajPtr] : node->leafEntries) {
+                if (!trajPtr) continue;
 
-                // If heap not full or found a closer trajectory, add it
-                if (knn.size() < k || distSq < getFarthestDistSq()) {
-                    knn.push({distSq, *trajPtr});
-                    // Keep heap size <= k
-                    if (knn.size() > k) knn.pop();
+                // Step 1: approximate distance (fast)
+                float approxDistSq = query.approximateDistance(*trajPtr, timeScale);
+                if (knn.size() < kCandidates || approxDistSq < getFarthestDistSq()) {
+                    // Step 2: exact spatio-temporal distance (expensive, only if promising)
+                    float exactDistSq = query.spatioTemporalDistanceTo(*trajPtr, timeScale);
+
+                    if (knn.size() < kCandidates || exactDistSq < getFarthestDistSq()) {
+                        knn.push({exactDistSq, trajPtr});
+                        if (knn.size() > kCandidates) knn.pop();
+                    }
                 }
             }
         } else {
-            // Internal node: check all children
+            // Internal nodes: prune by MBR distance
             for (const auto& [childBox, child] : node->childEntries) {
-                float minDistSq = queryBox.distanceSquaredTo(childBox); // min distance to child box
-
-                // Only explore child if it could contain a closer trajectory
+                float minDistSq = queryBox.distanceSquaredTo(childBox);
                 if (minDistSq <= getFarthestDistSq()) {
                     pq.push({minDistSq, child});
                 }
@@ -281,84 +342,28 @@ std::vector<Trajectory> RTreeNode::kNearestNeighbors(const Trajectory& query, si
         }
     }
 
-    // Extract results from heap into vector
-    std::vector<Trajectory> results;
-    while (!knn.empty()) {
-        results.push_back(knn.top().traj);
-        knn.pop();
-    }
-
-    // Reverse because we want nearest first
-    std::reverse(results.begin(), results.end());
-    return results;
-}
-
-*/
-
-std::vector<Trajectory> RTreeNode::kNearestNeighbors(const Trajectory& query, size_t k, float timeScale, size_t candidateMultiplier) const
-{
-    std::cout << "beggining of RTreeNode::kNearestNeighbors"<<std::endl;
-    using ResultPair = std::pair<float, Trajectory>; // distance, trajectory
-    std::priority_queue<ResultEntry> knn;           // max-heap for candidate distances
-    std::priority_queue<HeapEntry> pq;              // min-heap for nodes to explore
-
-    BoundingBox3D queryBox = query.computeBoundingBox();
-    pq.push({0.0f, std::const_pointer_cast<RTreeNode>(shared_from_this())});
-
-    // Keep more candidates than k to ensure enough unique vehicles
-    size_t kCandidates = k * candidateMultiplier;
-
-    auto getFarthestDist = [&]() -> float {
-        return knn.empty() ? std::numeric_limits<float>::max() : knn.top().distSq;
-    };
-
-    std::cout<< " while (!pq.empty()) " <<std::endl;
-    while (!pq.empty()) {
-        auto [distNode, node] = pq.top(); pq.pop();
-
-        if (distNode > getFarthestDist()) break;
-
-        if (node->isLeaf) {
-            for (const auto& [_, trajPtr] : node->leafEntries) {
-                float dist = query.spatioTemporalDistanceTo(*trajPtr, timeScale);
-
-                if (knn.size() < kCandidates || dist < getFarthestDist()) {
-                    knn.push({dist, *trajPtr});
-                    if (knn.size() > kCandidates) knn.pop();
-                }
-            }
-        } else {
-            for (const auto& [childBox, child] : node->childEntries) {
-                float minDist = queryBox.distanceSquaredTo(childBox);
-                if (minDist <= getFarthestDist()) pq.push({minDist, child});
-            }
-        }
-    }
-
-    std::cout<<"before extract candidates"<<std::endl;
-
-    // Extract candidates and filter by unique vehicle
+    // Collect top-k candidates
     std::vector<ResultPair> candidates;
-    while (!knn.empty()) {
-        candidates.push_back({knn.top().distSq, knn.top().traj});
-        knn.pop();
-    }
+    while (!knn.empty()) { candidates.push_back(knn.top()); knn.pop(); }
     std::sort(candidates.begin(), candidates.end(),
               [](const ResultPair& a, const ResultPair& b){ return a.first < b.first; });
 
+    // Filter duplicates & exclude query itself
     std::vector<Trajectory> results;
-    std::unordered_set<std::string> seenTrajIds;
-
-    for (auto& [dist, traj] : candidates) {
-        std::string trajId = traj.getId(); // assumes you have gettrajId()
-        if (trajId == query.getId() || seenTrajIds.count(trajId)) continue;
-        results.push_back(traj);
-        seenTrajIds.insert(trajId);
-        if (results.size() >= k) break;
+    std::unordered_set<std::string> seen;
+    for (auto& [distSq, trajPtr] : candidates) {
+        if (!trajPtr) continue;
+        const std::string& tid = trajPtr->getId();
+        if (tid == query.getId()) continue;
+        if (seen.insert(tid).second) {
+            results.push_back(*trajPtr);
+            if (results.size() >= k) break;
+        }
     }
 
     return results;
 }
+
 
 
 // ---------------- Deletion & Update ----------------
@@ -420,32 +425,54 @@ bool RTreeNode::updateTrajectory(const Trajectory& traj) {
     return false; // Trajectory not found
 }
 
-
 // ---------------- Condense Tree ----------------
-void RTreeNode::condenseTree() {
-    auto p = parent.lock();
-    if (!p) return; // reached root
 
-    std::vector<std::shared_ptr<RTreeNode>> toReinsert;
+// Remove node from parent
+void RTreeNode::removeFromParent() {
+    if (auto p = parent.lock()) {
+        auto& siblings = p->childEntries;
+        siblings.erase(std::remove_if(siblings.begin(), siblings.end(),
+                                      [&](const auto& pair){ return pair.second.get() == this; }),
+                       siblings.end());
+        p->markDirty();
+    }
+}
+
+void RTreeNode::condenseTree() {
+    auto p = parent.lock(); // get parent node
+    if (!p) return; // stop if this is the root (no parent)
+
+    std::vector<std::shared_ptr<RTreeNode>> toReinsert; // store children that need reinsertion
 
     if (isLeaf) {
+        // If leaf node has no entries, remove it from its parent
         if (leafEntries.empty()) removeFromParent();
     } else {
-        if (childEntries.empty()) removeFromParent();
-        else if ((int)childEntries.size() < (maxEntries + 1)/2) {
-            // Collect orphaned children to reinsert
-            for (auto& [_, child] : childEntries) toReinsert.push_back(child);
-            childEntries.clear();
+        // Internal node
+        if (childEntries.empty()) {
+            // No children, remove from parent
             removeFromParent();
+        } else if ((int)childEntries.size() < (maxEntries + 1)/2) {
+            // Node underflows (less than minimum allowed entries)
+            // Collect children to reinsert later
+            for (auto& [_, child] : childEntries) toReinsert.push_back(child);
+            childEntries.clear(); // remove all children
+            removeFromParent();   // remove this node from its parent
         }
     }
 
     if (p) {
+        // Recursively condense up the tree
         p->condenseTree();
-        for (auto& child : toReinsert) p->insertChild(child->getMBR(), child);
+
+        // Reinsert orphaned children into the parent
+        for (auto& child : toReinsert) 
+            p->insertChild(child->getMBR(), child);
     }
 }
 
+
+// ---------------- Operators & Serialization ----------------
 bool RTreeNode::operator!=(const RTreeNode& other) const {
     return !(*this == other);
 }
@@ -493,16 +520,6 @@ json RTreeNode::to_json() const {
 }
 
 
-// Remove node from parent
-void RTreeNode::removeFromParent() {
-    if (auto p = parent.lock()) {
-        auto& siblings = p->childEntries;
-        siblings.erase(std::remove_if(siblings.begin(), siblings.end(),
-                                      [&](const auto& pair){ return pair.second.get() == this; }),
-                       siblings.end());
-        p->markDirty();
-    }
-}
 
 // Getters 
 const std::vector<std::pair<BoundingBox3D, std::shared_ptr<Trajectory>>>& RTreeNode::getLeafEntries() const{
@@ -512,6 +529,301 @@ const std::vector<std::pair<BoundingBox3D, std::shared_ptr<Trajectory>>>& RTreeN
 const std::vector<std::pair<BoundingBox3D, std::shared_ptr<RTreeNode>>>& RTreeNode::getChildEntries() const{
     return childEntries;
 }
+
+
+/*
+std::vector<Trajectory> RTreeNode::kNearestNeighbors(
+    const Trajectory& query, size_t k, float timeScale, size_t candidateMultiplier) const
+{
+    using ResultPair = std::pair<float, std::shared_ptr<Trajectory>>; // distSq, trajectory ptr
+
+    // Max-heap for current k nearest (largest dist on top)
+    auto cmpMax = [](const ResultPair& a, const ResultPair& b) { return a.first < b.first; };
+    std::priority_queue<ResultPair, std::vector<ResultPair>, decltype(cmpMax)> knn(cmpMax);
+
+    // Min-heap for R-tree node exploration (smallest dist on top)
+    using HeapEntry = std::pair<float, std::shared_ptr<RTreeNode>>; // distSq, node
+    auto cmpMin = [](const HeapEntry& a, const HeapEntry& b) { return a.first > b.first; };
+    std::priority_queue<HeapEntry, std::vector<HeapEntry>, decltype(cmpMin)> pq(cmpMin);
+
+    // Start from this node (root of this subtree)
+    pq.push({0.0f, std::const_pointer_cast<RTreeNode>(shared_from_this())});
+
+    size_t kCandidates = std::max<size_t>(1, k * candidateMultiplier);
+
+    auto getFarthestDistSq = [&]() -> float {
+        return knn.empty() ? std::numeric_limits<float>::infinity() : knn.top().first;
+    };
+
+    BoundingBox3D queryBox = query.computeBoundingBox();
+
+    while (!pq.empty()) {
+        auto [nodeDistSq, node] = pq.top(); pq.pop();
+
+        if (nodeDistSq > getFarthestDistSq()) break; // all further nodes are too far
+
+        if (node->isLeaf) {
+            // For each trajectory in the leaf, do approximate prune, then exact check
+            for (const auto& [box, trajPtr] : node->leafEntries) {
+                // quick prune using bounding boxes / summary: approximateDistance returns squared value
+                float approxDistSq = query.approximateDistance(*trajPtr, timeScale);
+                if (knn.size() < kCandidates || approxDistSq < getFarthestDistSq()) {
+                    float exactDistSq = query.spatioTemporalDistanceTo(*trajPtr, timeScale);
+                    if (knn.size() < kCandidates || exactDistSq < getFarthestDistSq()) {
+                        knn.push({exactDistSq, trajPtr});
+                        if (knn.size() > kCandidates) knn.pop();
+                    }
+                }
+            }
+        } else {
+            // For internal nodes, push children whose MBR is promising
+            for (const auto& [childBox, child] : node->childEntries) {
+                float minDistSq = queryBox.distanceSquaredTo(childBox);
+                if (minDistSq <= getFarthestDistSq()) {
+                    pq.push({minDistSq, child});
+                }
+            }
+        }
+    }
+
+    // Extract candidates (sorted by distance asc)
+    std::vector<ResultPair> candidates;
+    while (!knn.empty()) { candidates.push_back(knn.top()); knn.pop(); }
+    std::sort(candidates.begin(), candidates.end(),
+              [](const ResultPair& a, const ResultPair& b){ return a.first < b.first; });
+
+    // Filter duplicates & exclude the query itself, return top-k trajectories
+    std::vector<Trajectory> results;
+    std::unordered_set<std::string> seen;
+    for (auto& [distSq, trajPtr] : candidates) {
+        if (!trajPtr) continue;
+        const std::string& tid = trajPtr->getId();
+        if (tid == query.getId()) continue;
+        if (seen.insert(tid).second) {
+            results.push_back(*trajPtr); // final copy for return
+            if (results.size() >= k) break;
+        }
+    }
+    return results;
+}
+
+std::vector<Trajectory> RTreeNode::kNearestNeighbors(
+    const Trajectory& query, size_t k, float timeScale, size_t candidateMultiplier) const
+{
+    using ResultPair = std::pair<float, std::shared_ptr<Trajectory>>; // distSq, trajectory ptr
+
+    // Max-heap for current k nearest (largest dist on top)
+    auto cmpMax = [](const ResultPair& a, const ResultPair& b) { return a.first < b.first; };
+    std::priority_queue<ResultPair, std::vector<ResultPair>, decltype(cmpMax)> knn(cmpMax);
+
+    // Min-heap for R-tree node exploration (smallest dist on top)
+    using HeapEntry = std::pair<float, std::shared_ptr<RTreeNode>>;
+    auto cmpMin = [](const HeapEntry& a, const HeapEntry& b) { return a.first > b.first; };
+    std::priority_queue<HeapEntry, std::vector<HeapEntry>, decltype(cmpMin)> pq(cmpMin);
+
+    // Start from this node
+    pq.push({0.0f, std::const_pointer_cast<RTreeNode>(shared_from_this())});
+    size_t kCandidates = std::max<size_t>(1, k * candidateMultiplier);
+
+    auto getFarthestDistSq = [&]() -> float {
+        return knn.empty() ? std::numeric_limits<float>::infinity() : knn.top().first;
+    };
+
+    const BoundingBox3D& queryBox = query.getBoundingBox();
+
+    while (!pq.empty()) {
+        auto [nodeDistSq, node] = pq.top(); pq.pop();
+        if (nodeDistSq > getFarthestDistSq()) break;
+
+        if (node->isLeaf) {
+            // Leaf entries: approximate prune using precomputed centroid + bbox
+            for (const auto& [box, trajPtr] : node->leafEntries) {
+                if (!trajPtr) continue;
+
+                float approxDistSq = query.approximateDistance(*trajPtr, timeScale);
+
+                if (knn.size() < kCandidates || approxDistSq < getFarthestDistSq()) {
+                    // Exact spatio-temporal distance
+                    float exactDistSq = query.spatioTemporalDistanceTo(*trajPtr, timeScale);
+
+                    if (knn.size() < kCandidates || exactDistSq < getFarthestDistSq()) {
+                        knn.push({exactDistSq, trajPtr});
+                        if (knn.size() > kCandidates) knn.pop();
+                    }
+                }
+            }
+        } else {
+            // Internal nodes: use bounding box distance to prune
+            for (const auto& [childBox, child] : node->childEntries) {
+                float minDistSq = queryBox.distanceSquaredTo(childBox);
+                if (minDistSq <= getFarthestDistSq()) {
+                    pq.push({minDistSq, child});
+                }
+            }
+        }
+    }
+
+    // Extract top-k sorted by distance
+    std::vector<ResultPair> candidates;
+    while (!knn.empty()) { candidates.push_back(knn.top()); knn.pop(); }
+    std::sort(candidates.begin(), candidates.end(),
+              [](const ResultPair& a, const ResultPair& b){ return a.first < b.first; });
+
+    // Filter duplicates & exclude query itself
+    std::vector<Trajectory> results;
+    std::unordered_set<std::string> seen;
+    for (auto& [distSq, trajPtr] : candidates) {
+        if (!trajPtr) continue;
+        const std::string& tid = trajPtr->getId();
+        if (tid == query.getId()) continue;
+        if (seen.insert(tid).second) {
+            results.push_back(*trajPtr);
+            if (results.size() >= k) break;
+        }
+    }
+
+    return results;
+}
+*/
+
+/*
+// Find the k nearest trajectories to the query
+std::vector<Trajectory> RTreeNode::kNearestNeighbors(
+    const Trajectory& query, size_t k, float timeScale, size_t candidateMultiplier) const
+{
+    using ResultPair = std::pair<float, Trajectory>; // pair of distance and trajectory
+    std::priority_queue<ResultEntry> knn;           // max-heap to store candidate trajectories
+    std::priority_queue<HeapEntry> pq;              // min-heap to explore R-tree nodes by distance
+
+    // Compute the bounding box of the query trajectory
+    BoundingBox3D queryBox = query.computeBoundingBox();
+
+    // Start the search from this node
+    pq.push({0.0f, std::const_pointer_cast<RTreeNode>(shared_from_this())});
+
+    // Keep more candidates than k to ensure enough unique trajectories
+    size_t kCandidates = k * candidateMultiplier;
+
+    // Helper to get the largest distance currently in the knn heap
+    auto getFarthestDist = [&]() -> float {
+        return knn.empty() ? std::numeric_limits<float>::max() : knn.top().distSq;
+    };
+
+    // Main loop: explore nodes in order of increasing distance
+    while (!pq.empty()) {
+        auto [distNode, node] = pq.top(); pq.pop();
+
+        // Stop if the closest node is farther than the farthest candidate
+        if (distNode > getFarthestDist()) break;
+
+        if (node->isLeaf) {
+            // Leaf node: check all trajectories inside
+            for (const auto& [_, trajPtr] : node->leafEntries) {
+                float dist = query.spatioTemporalDistanceTo(*trajPtr, timeScale);
+
+                // Add trajectory to heap if we have space or it's closer than current farthest
+                if (knn.size() < kCandidates || dist < getFarthestDist()) {
+                    knn.push({dist, *trajPtr});
+                    if (knn.size() > kCandidates) knn.pop(); // remove farthest if over capacity
+                }
+            }
+        } else {
+            // Internal node: push children whose bounding boxes could contain closer trajectories
+            for (const auto& [childBox, child] : node->childEntries) {
+                float minDist = queryBox.distanceSquaredTo(childBox);
+                if (minDist <= getFarthestDist()) pq.push({minDist, child});
+            }
+        }
+    }
+
+    // Collect candidates from the max-heap and sort by distance
+    std::vector<ResultPair> candidates;
+    while (!knn.empty()) {
+        candidates.push_back({knn.top().distSq, knn.top().traj});
+        knn.pop();
+    }
+    std::sort(candidates.begin(), candidates.end(),
+              [](const ResultPair& a, const ResultPair& b){ return a.first < b.first; });
+
+    // Filter out duplicates and the query itself, keeping only k results
+    std::vector<Trajectory> results;
+    std::unordered_set<std::string> seenTrajIds;
+
+    for (auto& [dist, traj] : candidates) {
+        std::string trajId = traj.getId(); // unique trajectory ID
+        if (trajId == query.getId() || seenTrajIds.count(trajId)) continue;
+        results.push_back(traj);
+        seenTrajIds.insert(trajId);
+        if (results.size() >= k) break;
+    }
+
+    return results;
+}*/
+
+
+/*
+
+std::vector<Trajectory> RTreeNode::kNearestNeighbors(const Trajectory& query, size_t k) const {
+
+    std::priority_queue<ResultEntry> knn;  // max-heap storing current k nearest trajectories
+    std::priority_queue<HeapEntry> pq;     // min-heap storing nodes to explore
+
+    BoundingBox3D queryBox = query.computeBoundingBox(); // compute bounding box of query once
+
+    // Start with the root node, distance = 0
+    pq.push({0.0f, std::const_pointer_cast<RTreeNode>(shared_from_this())});
+
+    // Lambda to get the farthest distance in the current knn heap
+    auto getFarthestDistSq = [&]() -> float {
+        return knn.empty() ? std::numeric_limits<float>::max() : knn.top().distSq;
+    };
+
+    while (!pq.empty()) {
+        // Pop the node closest to query so far
+        auto [distSqNode, node] = pq.top(); 
+        pq.pop();
+
+        // If closest node is farther than farthest in knn, we can stop
+        if (distSqNode > getFarthestDistSq()) break;
+
+        if (node->isLeaf) {
+            // Leaf node: check all trajectories
+            for (const auto& [_, trajPtr] : node->leafEntries) {
+                float distSq = query.spatioTemporalDistanceTo(*trajPtr); // squared distance to trajectory
+
+                // If heap not full or found a closer trajectory, add it
+                if (knn.size() < k || distSq < getFarthestDistSq()) {
+                    knn.push({distSq, *trajPtr});
+                    // Keep heap size <= k
+                    if (knn.size() > k) knn.pop();
+                }
+            }
+        } else {
+            // Internal node: check all children
+            for (const auto& [childBox, child] : node->childEntries) {
+                float minDistSq = queryBox.distanceSquaredTo(childBox); // min distance to child box
+
+                // Only explore child if it could contain a closer trajectory
+                if (minDistSq <= getFarthestDistSq()) {
+                    pq.push({minDistSq, child});
+                }
+            }
+        }
+    }
+
+    // Extract results from heap into vector
+    std::vector<Trajectory> results;
+    while (!knn.empty()) {
+        results.push_back(knn.top().traj);
+        knn.pop();
+    }
+
+    // Reverse because we want nearest first
+    std::reverse(results.begin(), results.end());
+    return results;
+}
+
+*/
 
 /*
 bool RTreeNode::updateTrajectory(const Trajectory& traj) {

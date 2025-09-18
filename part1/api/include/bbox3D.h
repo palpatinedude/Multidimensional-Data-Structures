@@ -18,7 +18,7 @@
 #include "../include/point3D.h"
 #include <string>
 #include <iostream>
-
+#include <cstdint>  // for int64_t
 
 class BoundingBox3D {
 private:
@@ -26,8 +26,8 @@ private:
     float minX, minY;
     float maxX, maxY;
 
-    // --- Temporal bounds (timestamps as strings) ---
-    std::string minT, maxT;
+    // --- Temporal bounds (timestamps as int64_t) ---
+    int64_t minT, maxT;
 
     // Validate bounding box integrity
     bool validate() const;
@@ -35,8 +35,8 @@ private:
 public:
     // -------------------- Constructors --------------------
     BoundingBox3D();  // Default: empty bounding box
-    BoundingBox3D(float minX, float minY, const std::string& minT,
-           float maxX, float maxY, const std::string& maxT);
+    BoundingBox3D(float minX, float minY, int64_t minT,
+                  float maxX, float maxY, int64_t maxT);
 
     // -------------------- Expansion --------------------
     void expandToInclude(const Point3D& pt);
@@ -58,8 +58,8 @@ public:
     float getMinY() const;
     float getMaxX() const;
     float getMaxY() const;
-    std::string getMinT() const;
-    std::string getMaxT() const;
+    int64_t getMinT() const;
+    int64_t getMaxT() const;
 
     // -------------------- Utilities --------------------
     void print() const;
@@ -72,3 +72,4 @@ public:
 };
 
 #endif // BBOX3D_H
+

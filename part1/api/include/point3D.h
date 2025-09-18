@@ -73,6 +73,7 @@ public:
 #include <string>
 #include <iostream>
 #include <cmath>
+#include <cstdint>           
 #include "../../json.hpp"
 
 using json = nlohmann::json;
@@ -81,25 +82,25 @@ class Point3D {
 private:
     float x;          // Longitude 
     float y;          // Latitude
-    std::string t;    // Timestamp (ISO 8601 format)
+    int64_t t;        // Timestamp (as int64_t)
 
     void validate() const;      // Validates latitude, longitude, timestamp
 
 public:
     // -------------------- Constructors --------------------
-    Point3D();                                            // Default constructor (0,0,"")
-    Point3D(float x, float y, const std::string& t);     // Parameterized constructor
+    Point3D();                                            // Default constructor (0,0,0)
+    Point3D(float x, float y, int64_t t);                // Parameterized constructor
     Point3D(const Point3D& other);                       // Copy constructor
     Point3D(Point3D&& other) noexcept;                   // Move constructor
 
     // -------------------- Assignment --------------------
     Point3D& operator=(const Point3D& other);            // Copy assignment
-    Point3D& operator=(Point3D&& other) noexcept;       // Move assignment
+    Point3D& operator=(Point3D&& other) noexcept;        // Move assignment
 
     // -------------------- Accessors --------------------
     float getX() const;
     float getY() const;
-    std::string getT() const;
+    int64_t getT() const;
 
     // -------------------- Utilities --------------------
     void print() const;         // Prints the point to stdout
