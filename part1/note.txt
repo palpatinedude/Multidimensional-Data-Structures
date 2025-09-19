@@ -1,3 +1,7 @@
+This folder "part1" is about the 1st question about  "3D R-trees for Spatio-Temporal Query Processing in a dataset of planar
+trajectories".
+-------------------------------------------------------------------------------- 
+
 This file provides example queries to run using the API's queries functionality.
 
 -----------------------------
