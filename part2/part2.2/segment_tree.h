@@ -8,6 +8,7 @@
 #include <stdexcept>
 #include <memory>
 #include <set>
+#include <unordered_set>
 
 class Node
 {
@@ -20,7 +21,7 @@ struct Interval {
 };
 
 Interval interval;
-std::set<long> driverIds;  // Stores unique driver IDs in this interval
+ std::unordered_set<long> driverIds;  // Stores unique driver IDs in this interval
 int driverCount;  // Stores the count of unique driver IDs in this interval
 Node* left;
 Node* right;
@@ -50,17 +51,16 @@ Node* root;
 //private functions
     Node* buildTree(const std::vector<long long>& timestamps, 
                     const std::vector<std::tuple<long, long long, long long>>& driverTrips, 
-                    int start, int end);
+                    long long start, long long end);
 
 public:
- //Default Constructor
-SegmentTree() : root(nullptr) {}
 
 // Constructor to build the tree
-SegmentTree(const std::vector<long long>& timestamps, 
-    const std::vector<std::tuple<long, long long, long long>>& driverTrips);
+SegmentTree(std::vector<long long>& timestamps, 
+    std::vector<std::tuple<long, long long, long long>>& driverTrips);
+    
     // Destructor
-~SegmentTree() {
+ ~SegmentTree() {
     delete root;
 }
 
