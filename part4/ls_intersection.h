@@ -54,19 +54,17 @@ private:
     std::vector<std::unique_ptr<lineSeg>> segmentStorage; // Owns the segments
     SegmentComparator comparator;
 
-    //functions to handle events
+    //functions
     void handleEvent(const event& e);
-    void checkNeighbor(std::set<lineSeg*>::iterator it);
-
-     // Helper functions
-    point* computeIntersection(lineSeg* s1, lineSeg* s2) const;
-    void checkAdjacentSegments(std::set<lineSeg*>::iterator it);
+    void checkNeighbor(std::set<lineSeg*>::iterator it); //Checks intersections between a segment and its immediate neighbors
+    point* computeIntersection(lineSeg* s1, lineSeg* s2) const; //helper func for the main algorithm(findIntersections)
+    
 
 public:
     sweepLine(const std::vector<lineSeg>& segments);
     ~sweepLine();
 
-    std::vector<point> findIntersections();
+    std::vector<point> findIntersections(); //main algorithm function
     void clear();
 
 
