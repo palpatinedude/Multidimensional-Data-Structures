@@ -34,12 +34,24 @@ struct event{
     eventType type; //type of event (START, END, INTERSECTION)
 };
 
+struct eventComparator{ // For priority queue of events
+    bool operator()(const event& e1, const event& e2) const {
+      if(e1.p.x != e2.p.x)
+          return e1.p.x > e2.p.x; //min x first
+      if(e1.p.y != e2.p.y)
+          return e1.p.y > e2.p.y; //min y first
+        return e1.type > e2.type; //START < INTERSECTION < END
+    }
+};
 
 struct SegmentComparator{
-    double currentX; // Current X position of the sweep line
+    static double currentX; // Current X position of the sweep line, static so all comparisons use the same sweedpline
 
     bool operator()(const lineSeg* a, const lineSeg* b) const {
-        return a->getY(currentX) < b->getY(currentX);
+       double y1 = a->getY(currentX);
+       double y2 = b->getY(currentX);
+       return y1<y2; // Segment with lower Y at currentX comes first
+         
     }
 };
 
@@ -47,11 +59,11 @@ struct SegmentComparator{
 class sweepLine
 {
 private:
-    std::priority_queue<event, std::vector<event>, std::greater<event>> eventQueue; // Priority queue of events
+    std::priority_queue<event, std::vector<event>, eventComparator> eventQueue;// Priority queue of events
     std::set<lineSeg*, SegmentComparator> activeSeg; // Active set of segments intersecting the sweep line
     std::vector<point> intersections; // The intersetions found so far
     std::vector<std::unique_ptr<lineSeg>> segmentStorage; // Owns the segments
-    SegmentComparator comparator;
+
 
     //functions
     void handleEvent(const event& e);

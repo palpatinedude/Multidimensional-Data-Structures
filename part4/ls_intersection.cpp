@@ -15,6 +15,8 @@
 
 using namespace std;
 
+double SegmentComparator::currentX = 0.0; //Before processing any events, the sweep line is “sitting” at x = 0
+
 
 double lineSeg::getY(double x) const {
     if (p1.x == p2.x) { // Vertical line segment ((x1 == x2))
@@ -25,7 +27,11 @@ double lineSeg::getY(double x) const {
     return p1.y + w * (x - p1.x); //For any x between x₁ and x₂, we can find the corresponding y
 }
 
-sweepLine::sweepLine(const std::vector<lineSeg>& segments) : comparator{0}{
+sweepLine::sweepLine(const std::vector<lineSeg>& segments) {
+
+    // Start sweep line at x = 0 (will be updated at each event)
+    SegmentComparator::currentX = 0.0;
+
     // Initialize event queue with segment endpoints
     int segmentId = 0;
     for (const auto& seg : segments) {
@@ -43,8 +49,8 @@ sweepLine::sweepLine(const std::vector<lineSeg>& segments) : comparator{0}{
 }
 
 void sweepLine::clear() {
-    //clear event queue by swapping with an empty queue
-    std::priority_queue<event, std::vector<event>, std::greater<event>> emptyQueue;
+    // clear event queue by swapping with an empty queue
+    std::priority_queue<event, std::vector<event>, eventComparator> emptyQueue;
     std::swap(eventQueue, emptyQueue);
 
     activeSeg.clear();
@@ -56,6 +62,7 @@ void sweepLine::clear() {
 sweepLine::~sweepLine() {
     clear();
 }
+
 
 point* sweepLine::computeIntersection(lineSeg* s1, lineSeg* s2) const {}
 
