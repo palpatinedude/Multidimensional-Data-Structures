@@ -31,7 +31,6 @@ enum eventType { START, END, INTERSECTION };
 struct event{
     point p; //point where the event occurs
     lineSeg* seg; //which segment is involved
-    //lineSeg* otherSeg; //for intersection events, the other segment involved
     eventType type; //type of event (START, END, INTERSECTION)
 };
 
