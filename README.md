@@ -85,7 +85,7 @@ It consists of two independent modules:
 
 ## Dataset
 - **CityTrek-14K**: 14,000 driving trajectories from 280 drivers across Philadelphia, Atlanta, and Memphis
-- **Data**: Latitude, longitude, timestamp at 1Hz; anonymized
+- **Data**: Latitude, longitude, timestamp 
 - **Source**: [Kaggle](https://www.kaggle.com/datasets/sobhanmoosavi/citytrek-14k)
 
 ---
@@ -101,8 +101,7 @@ It consists of two independent modules:
 2. Go to `visualize` folder to run py files to evaluate the
 time and space performance of convex hull algorithms
 
-**Note:**  
-Part 1 and Part 3 are independent modules. Integration (e.g., convex hulls to optimize RTree queries) is planned for future work.
+
 
 
 **Note:**  
