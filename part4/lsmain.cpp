@@ -63,8 +63,6 @@ void testVerticalSegments() {
 }
 
 int main() {
-    std::cout << "Line Segment Intersection Algorithm - VS Code\n";
-    std::cout << "=============================================\n\n";
     
     testBasicIntersections();
     testParallelSegments(); 
