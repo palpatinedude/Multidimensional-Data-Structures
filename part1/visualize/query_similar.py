@@ -7,7 +7,7 @@ import plotly.graph_objects as go
 import plotly.express as px
 
 # ---------------- Load CSV ----------------
-df = pd.read_csv("../results/query_3_findSimilar_plot.csv")  # Path to your CSV file
+df = pd.read_csv("../results/query_3_findSimilar_plot.csv") 
 
 # ---------------- Separate trajectories ----------------
 # Query trajectory

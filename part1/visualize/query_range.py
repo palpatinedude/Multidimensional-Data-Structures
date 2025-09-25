@@ -5,9 +5,7 @@ import pandas as pd
 import plotly.graph_objects as go
 import plotly.express as px
 
-import pandas as pd
-import plotly.graph_objects as go
-import plotly.express as px
+
 
 # ---------------- Load CSV ----------------
 csv_file = "../results/query_1_rangeQuery_rtree.csv" 

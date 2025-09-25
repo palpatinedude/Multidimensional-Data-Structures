@@ -11,7 +11,7 @@ int main() {
     // Step 1: Load trajectories from Parquet
     // -----------------------------
     std::vector<Trajectory> trajectories;
-    std::string parquetDir = "preprocessing/trajectories_grouped.parquet";
+    std::string parquetDir = "../preprocessing/trajectories_grouped.parquet";
 
     auto start = std::chrono::high_resolution_clock::now();
     for (const auto& entry : fs::directory_iterator(parquetDir)) {
