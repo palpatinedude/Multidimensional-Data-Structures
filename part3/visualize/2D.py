@@ -20,8 +20,8 @@ import re
 # CONFIG: set folder containing results for one algorithm
 #folder = "../results/divideConquer2D/"
 #folder = "../results/monotoneChain2D/"
-folder = "../results/grahamScan2D/"
-#folder = "../results/quickHull2D/"
+#folder = "../results/grahamScan2D/"
+folder = "../results/quickHull2D/"
 # -----------------------------
 
 # -----------------------------
@@ -104,15 +104,22 @@ if os.path.exists(csv_file):
 
     plt.figure(figsize=(12,5))
 
-    # ----------------- Time plot -----------------
+     # ----------------- Time plot -----------------
     plt.subplot(1,2,1)
     if std_time.max() > 0:
         plt.errorbar(n_vals, time_col, yerr=std_time, fmt='bo-', label='Measured time')
     else:
         plt.plot(n_vals, time_col, 'bo-', label='Measured time')
 
-    # Reference O(n log n) curve for comparison
-    plt.plot(n_vals, time_col[0]*(n_vals*np.log2(n_vals)/(n_vals[0]*np.log2(n_vals[0]))), 'r--', label='O(n log n) reference')
+    # Reference curve: O(n log² n) for divideConquer2D, else O(n log n)
+    if folder.rstrip('/') == "../results/divideConquer2D":
+        ref_curve = time_col[0]*(n_vals*np.log2(n_vals)**2/(n_vals[0]*np.log2(n_vals[0])**2))
+        ref_label = 'O(n log² n) reference'
+    else:
+        ref_curve = time_col[0]*(n_vals*np.log2(n_vals)/(n_vals[0]*np.log2(n_vals[0])))
+        ref_label = 'O(n log n) reference'
+
+    plt.plot(n_vals, ref_curve, 'r--', label=ref_label)
     plt.xlabel("Input size n")
     plt.ylabel("Time (us)")
     plt.title("2D Convex Hull: Time Complexity")

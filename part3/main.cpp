@@ -30,9 +30,9 @@ int main() {
     std::cout << "Running 2D Divide & Conquer..." << std::endl;
     evaluator.evaluate2D(divideAndConquer2D, sizes, "divideConquer2D");
 
-    // Run 3D Divide & Conquer
-    std::cout << "Running 3D Divide & Conquer..." << std::endl;
-    evaluator.evaluate3D(divideAndConquer3D, sizes, "divideConquer3D");
+    // Run 3D Chan's 
+  //  std::cout << "Running 3D Chan's..." << std::endl;
+    //evaluator.evaluate3D(chan3DConvexHull, sizes, "chan3D");
 
     // Run 2D Monotone Chain
     std::cout << "Running 2D Monotone Chain..." << std::endl;

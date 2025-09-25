@@ -3,7 +3,7 @@
  * ----------------
  * Declares the convex hull algorithms implemented in this project:
  * 1. 2D Divide & Conquer
- * 2. 3D Divide & Conquer
+ * 2. 3D Chan's
  * 3. 2D Monotone Chain
  * 4. 2D QuickHull
  * 5. 3D QuickHull
@@ -18,11 +18,17 @@
 #include <vector>
 using namespace std;
 
+struct Hull3D {
+    vector<Point3> vertices;
+    vector<array<int,3>> faces;
+};
+
+
 // ---------------------- 2D Divide & Conquer ----------------------
 vector<Point> divideAndConquer2D(vector<Point>& points);
 
-// ---------------------- 3D Divide & Conquer ----------------------
-vector<Point3> divideAndConquer3D(vector<Point3>& points);
+// ---------------------- 3D Chan's ----------------------
+Hull3D chan3DConvexHull(vector<Point3>& points);
 
 // ---------------------- 2D Monotone Chain ----------------------
 vector<Point> monotoneChainHull(vector<Point>& pts);
@@ -34,11 +40,6 @@ vector<Point> quickHull2D(vector<Point>& pts);
 vector<Point> grahamScan2D(vector<Point>& points);
 
 // ---------------------- 3D QuickHull ----------------------
-struct Hull3D {
-    vector<Point3> vertices;
-    vector<array<int,3>> faces;
-};
-
 Hull3D quickHull3D(vector<Point3>& points);
 
 

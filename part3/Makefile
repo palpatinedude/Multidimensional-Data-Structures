@@ -6,12 +6,11 @@ CXXFLAGS = -std=c++17 -O2 -Wall -Wextra
 SRC = main.cpp \
       common.cpp \
       methods/2D/divideConquer.cpp \
-      methods/3D/divideConquer.cpp \
+      methods/3D/chans.cpp \
       methods/2D/monotoneChain.cpp \
       methods/2D/quickHull.cpp \
       methods/3D/quickHull.cpp \
       methods/2D/grahamScan.cpp \
-      methods/3D/incremental.cpp \
       evaluation/evaluation.cpp 
 
 # Object files

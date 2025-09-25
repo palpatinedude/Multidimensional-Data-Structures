@@ -172,6 +172,95 @@ void Evaluation::evaluate3D(Func hullFunc,
     }
 
     out.close();
+
+
 }
 
+
+
 #endif // EVALUATION_TPP
+
+
+/*
+// ------------------ 3D Experiment ------------------
+template<typename Func>
+void Evaluation::evaluate3D(Func hullFunc,
+                            const vector<int>& sizes,
+                            const string& algName) {
+    fs::create_directories("results/" + algName);
+    ofstream out("results/" + algName + "/" + algName + "_results.csv");
+    out << "n,avg_time_us,std_time_us,avg_mem_KB,std_mem_KB\n";
+
+    for (int n : sizes) {
+        int runs = numRuns;
+        bool singleRun = false;
+
+        // Keep QuickHull3D old optimization
+        if ((algName == "quickHull3D" || algName == "chan3D") && n >= 20000) {
+            runs = 1;
+            singleRun = true;
+        }
+
+        vector<double> times, mems;
+
+        for (int run = 0; run < runs; run++) {
+          //  if (algName == "quickHull3D"){
+            vector<Point3> points = generateRandomSphere3D(n, 1.0);
+          //  else { vector<Point3> points = generateRandom3D(n);}
+
+            auto start = high_resolution_clock::now();
+            Hull3D hullOutput = hullFunc(points); // Chan3D or QuickHull3D
+            auto end = high_resolution_clock::now();
+
+            double time_us = duration_cast<microseconds>(end - start).count();
+
+            // Estimate memory usage (points + hull vertices)
+            size_t mem_bytes = sizeof(Point3) * points.size() +
+                               sizeof(Point3) * hullOutput.vertices.size();
+            double mem_kb = mem_bytes / 1024.0;
+
+            times.push_back(time_us);
+            mems.push_back(mem_kb);
+
+            // Save points
+            savePoints(points, "results/" + algName + "/" + algName +
+                       "_points_" + to_string(n) + "_" + to_string(run+1) + ".txt");
+
+            // Save hull vertices
+            savePoints(hullOutput.vertices, "results/" + algName + "/" + algName +
+                       "_vertices_" + to_string(n) + "_" + to_string(run+1) + ".txt");
+
+            // Save hull faces
+            ofstream fout("results/" + algName + "/" + algName +
+                          "_faces_" + to_string(n) + "_" + to_string(run+1) + ".txt");
+            for (auto &f : hullOutput.faces)
+                fout << f[0] << " " << f[1] << " " << f[2] << "\n";
+            fout.close();
+        }
+
+        // Compute averages and standard deviations
+        double avg_time = computeMean(times);
+        double avg_mem  = computeMean(mems);
+        double std_time = singleRun ? 0.0 : computeStd(times, avg_time);
+        double std_mem  = singleRun ? 0.0 : computeStd(mems, avg_mem);
+
+        // Console logging
+        if (!singleRun) {
+            cout << "n=" << n << " avg_time=" << avg_time << " us ±" << std_time
+                 << ", avg_mem=" << avg_mem << " KB ±" << std_mem << "\n";
+        } else {
+            cout << "n=" << n << " time=" << avg_time
+                 << " us, mem=" << avg_mem << " KB\n";
+        }
+
+        // CSV logging
+        out << n << "," << avg_time << "," << std_time
+            << "," << avg_mem << "," << std_mem << "\n";
+    }
+
+    out.close();
+}
+
+
+
+*/

@@ -28,8 +28,8 @@
  */
 
 #include "../../common.h"
-#include <set>
 #include <algorithm>
+#include <vector>
 #include <cmath>
 using namespace std;
 
