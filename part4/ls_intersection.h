@@ -15,6 +15,14 @@
 struct point {
     double x, y;
     point(double z = 0, double w = 0) : x(z), y(w) {}
+
+      bool operator<(const point& other) const {
+        return x < other.x || (x == other.x && y < other.y);
+    }
+
+    bool operator==(const point& other) const {
+    return std::abs(x - other.x) < 1e-9 && std::abs(y - other.y) < 1e-9;
+}
 };
 
 
@@ -35,7 +43,23 @@ struct event{
     eventType type; //type of event (START, END, INTERSECTION)
 };
 
-struct eventComparator{ // For priority queue of events
+
+struct eventComparator {
+    bool operator()(const event& e1, const event& e2) const {
+        // Primary: X coordinate (leftmost first) - use epsilon for floating point
+        if (std::abs(e1.p.x - e2.p.x) > 1e-9)
+            return e1.p.x > e2.p.x; // Priority queue is max-heap, so reverse for min
+        
+        // Secondary: Y coordinate (lowest first)  
+        if (std::abs(e1.p.y - e2.p.y) > 1e-9)
+            return e1.p.y > e2.p.y;
+        
+        // Tertiary: Event type priority (START < INTERSECTION < END)
+        // This ensures intersections are processed before endpoints at same location
+        return e1.type > e2.type;
+    }
+};
+/*struct eventComparator{ // For priority queue of events
     bool operator()(const event& e1, const event& e2) const {
       if(e1.p.x != e2.p.x)
           return e1.p.x > e2.p.x; //min x first
@@ -43,7 +67,7 @@ struct eventComparator{ // For priority queue of events
           return e1.p.y > e2.p.y; //min y first
         return e1.type > e2.type; //START < INTERSECTION < END
     }
-};
+};*/
 
 struct SegmentComparator{
     static double currentX; // Current X position of the sweep line, static so all comparisons use the same sweedpline
@@ -51,8 +75,15 @@ struct SegmentComparator{
     bool operator()(const lineSeg* a, const lineSeg* b) const {
        double y1 = a->getY(currentX);
        double y2 = b->getY(currentX);
-       return y1<y2; // Segment with lower Y at currentX comes first
-         
+
+       // Primary comparison: Y coordinate at currentX
+       if (std::abs(y1 - y2) > 1e-9) {
+           return y1 < y2; // Segment with lower Y comes first
+       }
+       
+       // If Y values are very close, a tie-breaker is needed to ensure strict weak ordering
+       // Pointer comparison to ensure consistency and uniqueness
+       return a < b;
     }
 };
 
