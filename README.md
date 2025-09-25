@@ -93,11 +93,11 @@ It consists of two independent modules:
 ## Usage Instructions
 ### Part 1 – RTree
 1. Run `preprocess.py` to convert CSV to Parquet
-2. Build RTree using `main.cpp`
+2. Build RTree using `MakeFile` --> make run
 4. Analyze results via CSV files
 
 ### Part 3 – Convex Hull
-1. Run `main.cpp`
+1. Run `MakeFile` --> make run
 2. Go to `visualize` folder to run py files to evaluate the
 time and space performance of convex hull algorithms
 
