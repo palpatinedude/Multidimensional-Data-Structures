@@ -1,72 +1,88 @@
+// segment_tree.h - Header file for Trip Counting Segment Tree
 #ifndef SEGMENT_TREE_H
 #define SEGMENT_TREE_H
 
 #include <vector>
-#include <limits>
-#include <algorithm>
-#include <cmath>
-#include <stdexcept>
-#include <memory>
-#include <set>
-#include <unordered_set>
+#include <tuple>
+#include <functional>
 
-class Node
-{
-
+/**
+ * Node class represents a single node in the segment tree
+ * Each node covers a time interval and stores the count of trips overlapping that interval
+ */
+class Node {
 public:
-//interval stucture
-struct Interval {
-    long long low;
-    long long high;
-};
+    long long start, end;  // Time interval this node represents [start, end]
+    int tripCount;         // Number of trips overlapping this time interval
+    Node* left;            // Pointer to left child (earlier time intervals)
+    Node* right;           // Pointer to right child (later time intervals)
 
-Interval interval;
- std::unordered_set<long> driverIds;  // Stores unique driver IDs in this interval
-int driverCount;  // Stores the count of unique driver IDs in this interval
-Node* left;
-Node* right;
-
-//Constructor
-Node(long long low, long long high, int driverCount = 0)
-: interval{low, high},driverCount(0) , left(nullptr), right(nullptr) {}
-
-//Destructor
-~Node() {
-delete left;
-delete right;
-}
-
-//public functions
-void updateDriverCount(const std::vector<std::tuple<long, long long, long long>>& driverTrips);
-
-};
-
-
-class SegmentTree {
-
-
-private:
-Node* root;
-
-//private functions
-    Node* buildTree(const std::vector<long long>& timestamps, 
-                    const std::vector<std::tuple<long, long long, long long>>& driverTrips, 
-                    long long start, long long end);
-
-public:
-
-// Constructor to build the tree
-SegmentTree(std::vector<long long>& timestamps, 
-    std::vector<std::tuple<long, long long, long long>>& driverTrips);
+    // Constructor: Initialize node with time interval
+    Node(long long s, long long e) : start(s), end(e), tripCount(0), left(nullptr), right(nullptr) {}
     
-    // Destructor
- ~SegmentTree() {
-    delete root;
-}
+    // Destructor: Recursively delete all child nodes
+    ~Node() {
+        delete left;
+        delete right;
+    }
+};
 
-//public functions
-int query(long long queryLow, long long queryHigh);
+/**
+ * SegmentTree class for efficiently counting trips in time intervals
+ * Built on discrete timestamps, supports range queries for trip counts
+ */
+class SegmentTree {
+private:
+    Node* root;  // Root node of the segment tree
+    std::vector<std::tuple<long, long long, long long>> trips;  // Store all trip data for counting
+    
+    // Private helper functions
+    
+    /**
+     * Recursively builds the segment tree
+     * @param timestamps: Sorted array of unique timestamps
+     * @param start: Starting index in timestamps array
+     * @param end: Ending index in timestamps array
+     * @return: Pointer to root of subtree covering timestamps[start..end]
+     */
+    Node* buildTree(const std::vector<long long>& timestamps, int start, int end);
+    
+    /**
+     * Counts how many trips overlap with given time interval
+     * @param intervalStart: Start time of interval
+     * @param intervalEnd: End time of interval  
+     * @return: Number of trips that overlap with [intervalStart, intervalEnd]
+     */
+    int countOverlappingTrips(long long intervalStart, long long intervalEnd);
+    
+    /**
+     * Recursive helper function for range queries
+     * @param node: Current node being examined
+     * @param queryStart: Start of query time range
+     * @param queryEnd: End of query time range
+     * @return: Number of trips active during query range
+     */
+    int queryHelper(Node* node, long long queryStart, long long queryEnd);
 
+public:
+    /**
+     * Constructor: Builds segment tree from timestamps and trip data
+     * @param timestamps: Vector of discrete timestamp points
+     * @param tripData: Vector of tuples (tripId, startTime, endTime)
+     */
+    SegmentTree(const std::vector<long long>& timestamps, 
+                const std::vector<std::tuple<long, long long, long long>>& tripData);
+    
+    // Destructor: Clean up all allocated memory
+    ~SegmentTree() { delete root; }
+    
+    /**
+     * Query how many trips were active during given time range
+     * @param queryStart: Start time of query range
+     * @param queryEnd: End time of query range
+     * @return: Number of trips overlapping with [queryStart, queryEnd]
+     */
+    int query(long long queryStart, long long queryEnd);
 };
 
 #endif
