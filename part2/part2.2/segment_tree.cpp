@@ -77,10 +77,13 @@ int SegmentTree::countOverlappingTrips(long long intervalStart, long long interv
     return count;
 }
 
+
 /**
  * Recursive helper function for range queries
  * Traverses tree to find nodes that overlap with query range
  */
+
+ /*
 int SegmentTree::queryHelper(Node* node, long long queryStart, long long queryEnd) {
     // Base case: null node
     if (!node) return 0;
@@ -115,6 +118,67 @@ int SegmentTree::queryHelper(Node* node, long long queryStart, long long queryEn
         // Return maximum because we want the count of trips active during the query period
         return std::max(leftResult, rightResult);
     }
+} */
+
+/**
+ * Recursive helper function for range queries - OPTIMIZED VERSION
+ * Key optimization: Uses precomputed tripCount values when possible,
+ * only recounts trips when absolutely necessary (leaf nodes with partial overlap)
+ * 
+ * Time complexity: O(log n) for tree traversal + O(m) only for partial leaf overlaps
+ * where n = number of timestamps, m = number of trips
+ */
+int SegmentTree::queryHelper(Node* node, long long queryStart, long long queryEnd) {
+    // Base case: null node - no trips to count
+    if (!node) return 0;
+    
+    // Case 1: No overlap between node's interval and query range
+    // If the node's time interval doesn't intersect with query, skip this subtree entirely
+    // This pruning is what makes segment trees efficient
+    if (node->end < queryStart || node->start > queryEnd) {
+        return 0;
+    }
+    
+    // Case 2: Complete overlap - FAST PATH using precomputed count
+    // If query completely contains this node's interval, we can use the 
+    // precomputed tripCount without recounting. This is the key optimization!
+    // Time complexity: O(1) - just return stored value
+    if (queryStart <= node->start && node->end <= queryEnd) {
+        return node->tripCount;
+    }
+    
+    // Case 3: Partial overlap with internal node
+    // Query partially overlaps this node, so we need to check children
+    // Recurse down the tree to find nodes with complete overlap (fast path)
+    if (node->left || node->right) {
+        // Query left subtree (earlier time intervals)
+        int leftResult = node->left ? queryHelper(node->left, queryStart, queryEnd) : 0;
+        
+        // Query right subtree (later time intervals)
+        int rightResult = node->right ? queryHelper(node->right, queryStart, queryEnd) : 0;
+        
+        // Take maximum because a trip can span across both subtrees
+        // We want the count of trips active in ANY part of the query range
+        return std::max(leftResult, rightResult);
+    }
+    
+    // Case 4: Partial overlap with leaf node - SLOW PATH (unavoidable)
+    // This is a leaf representing a single timestamp that partially overlaps the query
+    // We MUST recount because the precomputed tripCount is for the exact timestamp,
+    // but the query range might be different
+    // Time complexity: O(m) where m = total number of trips
+    // This should happen rarely if the tree is well-balanced
+    int count = 0;
+    for (const auto& trip : trips) {
+        long long tripStart = std::get<1>(trip);
+        long long tripEnd = std::get<2>(trip);
+        
+        // Standard interval overlap check
+        if (tripStart <= queryEnd && tripEnd >= queryStart) {
+            count++;
+        }
+    }
+    return count;
 }
 
 
