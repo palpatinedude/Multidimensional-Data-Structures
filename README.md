@@ -96,6 +96,14 @@ It consists of two independent modules:
 2. Build RTree using `MakeFile` --> make run
 4. Analyze results via CSV files
 
+### Part 2 - Part2.2 - Segment Tree
+1. # Update package list with the new Arrow repository
+sudo apt update
+# Install Arrow and Parquet libraries
+sudo apt install -y libarrow-dev libparquet-dev
+2. In file 'UseData_segment_tree.cpp' which is the main function file update the paths of the files before running (first in include and then in line 19).
+3. For simple test meaning : build the segment tree using the whole dataset aka all the timestamps and execute the query : g++ -std=c++17 -o simple_segment_test parquet_reader.cpp useData_segment_tree.cpp -larrow -lparquet -lstdc++fs and then ./simple_segment_test.
+
 ### Part 3 – Convex Hull
 1. Run `MakeFile` --> make run
 2. Go to `visualize` folder to run py files to evaluate the
