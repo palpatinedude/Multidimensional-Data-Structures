@@ -1,26 +1,25 @@
 // main_with_parquet.cpp - Main function using parquet data to fill the segment tree
 #include <iostream>
 #include <chrono>
-#include "segment_tree.h"
+#include <random>     
+#include <algorithm>
+#include <cmath>       
+#include <vector>      
+#include "/home/alex/desktop/Multidimensional-Data-Structures/part2/part2.2/segment_tree.h"
+#include "/home/alex/desktop/Multidimensional-Data-Structures/part2/part2.2/segment_tree.cpp"
 #include "parquet_reader.h"
 
 int main() {
-    std::cout << "Segment Tree with Parquet Data" << std::endl;
-    std::cout << "==============================" << std::endl;
+    std::cout << "Segment Tree Build Test with Full Dataset" << std::endl;
+    std::cout << "==========================================" << std::endl;
     
     ParquetReader reader;
     
-    // Try to load from single parquet file first
-    bool loaded = reader.loadFromParquet("trajectories_grouped.parquet");
-    
-    // If that fails, try the parquet chunks directory
-    if (!loaded) {
-        std::cout << "Single file not found, trying directory..." << std::endl;
-        loaded = reader.loadFromParquetDirectory("trajectory_data_parquet");
-    }
+    // Load parquet data
+    bool loaded = reader.loadFromParquetDirectory("/home/alex/desktop/Multidimensional-Data-Structures/preprocessing/trajectories_grouped.parquet");
     
     if (!loaded) {
-        std::cout << "Failed to load any parquet data!" << std::endl;
+        std::cout << "Failed to load parquet data!" << std::endl;
         return 1;
     }
     
@@ -36,14 +35,10 @@ int main() {
         return 1;
     }
     
-    // Limit data size for testing (optional)
-    if (trips.size() > 5000) {
-        trips.resize(5000);
-        std::cout << "Limited to first 5000 trips for testing" << std::endl;
-    }
-    
-    // Build segment tree
     std::cout << "\n=== Building Segment Tree ===" << std::endl;
+    std::cout << "Number of trips (m): " << trips.size() << std::endl;
+    std::cout << "Number of timestamps (n): " << timestamps.size() << std::endl;
+    
     auto buildStart = std::chrono::high_resolution_clock::now();
     
     SegmentTree st(timestamps, trips);
@@ -53,7 +48,7 @@ int main() {
     
     std::cout << "Segment tree built in " << buildTime << " milliseconds" << std::endl;
     
-    // Test some queries
+    // Test sample queries
     std::cout << "\n=== Sample Queries ===" << std::endl;
     
     if (!timestamps.empty()) {
@@ -84,6 +79,26 @@ int main() {
                       << result << " trips (" << queryTime << " μs)" << std::endl;
         }
     }
+    
+    // Complexity analysis
+    std::cout << "\n=== Complexity Analysis ===" << std::endl;
+    int n = timestamps.size();
+    int m = trips.size();
+    
+    std::cout << "Implementation build complexity: O(n × m)" << std::endl;
+    std::cout << "  where n = " << n << " timestamps" << std::endl;
+    std::cout << "        m = " << m << " trips" << std::endl;
+    std::cout << "  Theoretical operations: " << (n * m) << std::endl;
+    std::cout << "  Actual build time: " << buildTime << " ms" << std::endl;
+    std::cout << "  Time per operation: " << (buildTime * 1000.0) / (n * m) << " microseconds" << std::endl;
+    
+    std::cout << "\nQuery complexity: O(log n + k)" << std::endl;
+    std::cout << "  where n = " << n << " timestamps" << std::endl;
+    std::cout << "        k = number of results" << std::endl;
+    std::cout << "  Theoretical tree depth: " << (int)std::log2(n) << std::endl;
+    
+    std::cout << "\nNote: Standard segment tree build is O(n), but this implementation" << std::endl;
+    std::cout << "      rescans all trips at each node, resulting in O(n × m) complexity." << std::endl;
     
     return 0;
 }
