@@ -1,0 +1,4 @@
+It may contain test files from previous versions of the code. 
+
+
+Run -- >  g++ -std=c++17 -Wall -I./api/include -I/usr/local/include -o test_evaluation test_evaluation.cpp ../api/src/point3D.cpp ../api/src/bbox3D.cpp ../api/src/trajectory.cpp ../api/src/RTreeNode.cpp ../api/src/RTree.cpp ../evaluation/evaluation.cpp -L/usr/local/lib -larrow -lparquet -lz -lsnappy -llz4 -lbz2 -pthread ../timeUtil.cpp
